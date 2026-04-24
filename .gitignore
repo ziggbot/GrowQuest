@@ -1,0 +1,55 @@
+# macOS
+.DS_Store
+
+# Xcode
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+DerivedData/
+build/
+*.xcuserstate
+xcuserdata/
+
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+.swiftpm/
+
+# XcodeGen output — project.yml is the source of truth
+ios/Growquest.xcodeproj/
+
+# CocoaPods / Carthage (if ever introduced)
+Pods/
+Carthage/Build/
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
+
+# Secrets & env
+.env
+.env.*
+!.env.example
+*.p8
+*.p12
+*.mobileprovision
+*.cer
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# Node (optional tooling only)
+node_modules/
+.npm/
+dist/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.sw?
+*~
