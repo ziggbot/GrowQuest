@@ -40,6 +40,13 @@ jobs:
       - name: Install psql client
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
+      - name: Stub Supabase auth schema
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d growquest_test -v ON_ERROR_STOP=1 \
+            -f .github/auth-stub.sql
+
       - name: Apply migrations in order
         env:
           PGPASSWORD: postgres
@@ -49,6 +56,26 @@ jobs:
             echo "── applying $f"
             psql -h localhost -U postgres -d growquest_test -v ON_ERROR_STOP=1 -f "$f"
           done
+
+      - name: Smoke test — family bootstrap trigger
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d growquest_test -v ON_ERROR_STOP=1 <<'SQL'
+          insert into auth.users (email) values ('ci@example.test');
+          do $$
+          declare
+            uid uuid;
+          begin
+            select id into uid from auth.users where email = 'ci@example.test';
+            if (select count(*) from public.families where created_by = uid) <> 1 then
+              raise exception 'expected exactly one families row';
+            end if;
+            if (select count(*) from public.family_members where user_id = uid and role = 'parent') <> 1 then
+              raise exception 'expected exactly one family_members row with role=parent';
+            end if;
+          end $$;
+          SQL
 
       - name: Verify RLS forced on every public table
         env:
