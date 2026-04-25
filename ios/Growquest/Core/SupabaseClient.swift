@@ -1,8 +1,9 @@
 import Foundation
 import Supabase
+import Auth
 
-/// Single Supabase client for the app. Reads URL + anon key from Info.plist
-/// (which xcconfig populates from `.env`). Service-role key MUST NOT be present.
+/// Single Supabase client for the app. URL + anon key come from Info.plist
+/// (populated by xcconfig from `.env`). Auth state persists in Keychain.
 enum SupabaseEnvironment {
     static let url: URL = {
         guard let raw = Bundle.main.object(forInfoDictionaryKey: "SUPABASE_URL") as? String,
@@ -21,7 +22,17 @@ enum SupabaseEnvironment {
     }()
 }
 
-let supabase = SupabaseClient(
-    supabaseURL: SupabaseEnvironment.url,
-    supabaseKey: SupabaseEnvironment.anonKey
-)
+let supabase: SupabaseClient = {
+    let keychain = Keychain(service: Bundle.main.bundleIdentifier ?? "com.growquest.app")
+    let storage = KeychainAuthStorage(keychain: keychain)
+    return SupabaseClient(
+        supabaseURL: SupabaseEnvironment.url,
+        supabaseKey: SupabaseEnvironment.anonKey,
+        options: SupabaseClientOptions(
+            auth: SupabaseClientOptions.AuthOptions(
+                storage: storage,
+                autoRefreshToken: true
+            )
+        )
+    )
+}()

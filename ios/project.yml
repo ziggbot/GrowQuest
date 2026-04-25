@@ -52,6 +52,8 @@ targets:
         # never hard-code real values here.
         SUPABASE_URL: $(SUPABASE_URL)
         SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
+    entitlements:
+      path: Growquest/Resources/Growquest.entitlements
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.growquest.app
