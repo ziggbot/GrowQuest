@@ -18,6 +18,9 @@ Package.resolved
 # XcodeGen output — project.yml is the source of truth
 ios/Growquest.xcodeproj/
 
+# xcconfig generated from .env by scripts/bootstrap.sh
+ios/Config.xcconfig
+
 # CocoaPods / Carthage (if ever introduced)
 Pods/
 Carthage/Build/

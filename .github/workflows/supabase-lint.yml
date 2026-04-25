@@ -1,0 +1,74 @@
+name: Supabase migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - ".github/workflows/supabase-lint.yml"
+  pull_request:
+    paths:
+      - "supabase/**"
+      - ".github/workflows/supabase-lint.yml"
+
+concurrency:
+  group: supabase-lint-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  migrate-on-empty:
+    name: db reset against empty Postgres
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: growquest_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply migrations in order
+        env:
+          PGPASSWORD: postgres
+        run: |
+          set -euo pipefail
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            echo "── applying $f"
+            psql -h localhost -U postgres -d growquest_test -v ON_ERROR_STOP=1 -f "$f"
+          done
+
+      - name: Verify RLS forced on every public table
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql -h localhost -U postgres -d growquest_test -v ON_ERROR_STOP=1 -At -c "
+            select tablename
+            from pg_tables
+            where schemaname = 'public'
+              and tablename not in (
+                select c.relname
+                from pg_class c
+                join pg_namespace n on n.oid = c.relnamespace
+                where n.nspname = 'public'
+                  and c.relrowsecurity = true
+                  and c.relforcerowsecurity = true
+              );
+          " | tee /tmp/missing_rls.txt
+          if [ -s /tmp/missing_rls.txt ]; then
+            echo "::error::Tables missing FORCE ROW LEVEL SECURITY:"
+            cat /tmp/missing_rls.txt
+            exit 1
+          fi

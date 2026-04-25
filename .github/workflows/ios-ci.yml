@@ -1,0 +1,50 @@
+name: iOS CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: SwiftLint + xcodebuild
+    runs-on: macos-14
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: ios
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 15.3
+        run: sudo xcode-select -s /Applications/Xcode_15.3.app
+
+      - name: Install tooling
+        run: |
+          brew update
+          brew install xcodegen swiftlint
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: SwiftLint
+        run: swiftlint --strict --config .swiftlint.yml
+
+      - name: Build (simulator, no signing)
+        env:
+          SUPABASE_URL: http://127.0.0.1:54321
+          SUPABASE_ANON_KEY: ci-placeholder-anon-key
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project Growquest.xcodeproj \
+            -scheme Growquest \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17.4' \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            build | xcpretty

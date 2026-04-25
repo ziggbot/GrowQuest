@@ -1,0 +1,43 @@
+included:
+  - Growquest
+
+excluded:
+  - Growquest/Resources
+
+disabled_rules:
+  - todo
+  - line_length          # we'll re-enable once code is real
+  - identifier_name      # Swedish identifiers in DesignSystem trip this otherwise
+
+opt_in_rules:
+  - empty_count
+  - explicit_init
+  - first_where
+  - force_unwrapping
+  - implicit_return
+  - last_where
+  - prefer_zero_over_explicit_init
+  - redundant_nil_coalescing
+  - sorted_first_last
+  - toggle_bool
+  - unused_import
+  - vertical_whitespace_closing_braces
+
+force_cast: warning
+force_try: warning
+force_unwrapping: warning
+
+file_length:
+  warning: 600
+  error: 1000
+
+function_body_length:
+  warning: 80
+
+cyclomatic_complexity:
+  warning: 12
+
+nesting:
+  type_level: 2
+
+reporter: "xcode"
