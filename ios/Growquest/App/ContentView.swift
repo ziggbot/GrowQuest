@@ -17,9 +17,17 @@ struct ContentView: View {
             case .signedOut:
                 AuthView()
                     .transition(.opacity)
-            case .signedIn:
-                HomeView()
+            case .signedIn(_, let familyId):
+                if let familyId {
+                    NavigationStack {
+                        HomeView(familyId: familyId)
+                    }
                     .transition(.opacity)
+                } else {
+                    // Family bootstrap trigger lag — Session reloads on next auth event.
+                    ProgressView("Förbereder din familj…")
+                        .tint(Palette.gold)
+                }
             }
         }
         .animation(.easeInOut(duration: 0.2), value: stateKey)
@@ -36,4 +44,8 @@ struct ContentView: View {
 
 #Preview("Signed out") {
     ContentView().environment(Session())
+}
+
+#Preview("Auth view") {
+    AuthView()
 }

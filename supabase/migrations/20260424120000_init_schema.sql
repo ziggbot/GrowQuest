@@ -126,7 +126,7 @@ create policy "members write children"
 -- The "Skärmfri / Balanserad / Liberal" choice from the mockup.
 create table public.profile_configs (
   family_id              uuid primary key references public.families(id) on delete cascade,
-  profile_id             text not null check (profile_id in ('stram','balans','liberal')),
+  profile_id             text not null check (profile_id in ('stram','balans','fri')),
   uppdrag_multiplier     numeric(4,2) not null,
   screen_time_multiplier numeric(4,2) not null,
   daily_limit_minutes    int not null check (daily_limit_minutes between 0 and 1440),
