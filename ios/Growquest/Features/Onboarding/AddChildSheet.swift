@@ -1,4 +1,5 @@
 import SwiftUI
+import Supabase
 
 @Observable
 @MainActor
@@ -67,6 +68,7 @@ struct AddChildSheet: View {
     @State var viewModel: AddChildViewModel
 
     var body: some View {
+        @Bindable var viewModel = viewModel
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {

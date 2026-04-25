@@ -15,9 +15,7 @@ enum NonceFactory {
 
         while remaining > 0 {
             var random: UInt8 = 0
-            let status = withUnsafeMutableBytes(of: &random) { buf in
-                SecRandomCopyBytes(kSecRandomDefault, 1, buf.baseAddress!)
-            }
+            let status = SecRandomCopyBytes(kSecRandomDefault, 1, &random)
             guard status == errSecSuccess else {
                 fatalError("Unable to generate secure random bytes (status \(status))")
             }

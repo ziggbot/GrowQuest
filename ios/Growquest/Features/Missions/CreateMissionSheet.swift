@@ -1,5 +1,5 @@
 import SwiftUI
-import Auth
+import Supabase
 
 @Observable
 @MainActor
@@ -62,7 +62,8 @@ final class CreateMissionViewModel {
         }
 
         do {
-            let userId = try await supabase.auth.session.user.id
+            let session = try await supabase.auth.session
+            let userId = session.user.id
 
             let trimmedDesc = description.trimmingCharacters(in: .whitespaces)
             let row = InsertRow(
@@ -94,6 +95,7 @@ struct CreateMissionSheet: View {
     @State var viewModel: CreateMissionViewModel
 
     var body: some View {
+        @Bindable var viewModel = viewModel
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {

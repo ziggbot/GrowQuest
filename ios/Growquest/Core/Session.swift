@@ -23,7 +23,7 @@ final class Session {
     func bootstrap() async {
         stateTask?.cancel()
         stateTask = Task { [weak self] in
-            for await (_, session) in await supabase.auth.authStateChanges {
+            for await (_, session) in supabase.auth.authStateChanges {
                 await self?.apply(authSession: session)
             }
         }

@@ -5,6 +5,7 @@ struct AuthView: View {
     @State private var viewModel = AuthViewModel()
 
     var body: some View {
+        @Bindable var viewModel = viewModel
         ZStack {
             Palette.bg.ignoresSafeArea()
 

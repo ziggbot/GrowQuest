@@ -1,4 +1,5 @@
 import SwiftUI
+import Supabase
 
 @Observable
 @MainActor
@@ -114,6 +115,7 @@ struct HomeView: View {
                     case .child(let childId):
                         if let child = viewModel.children.first(where: { $0.id == childId }) {
                             ChildDashboardSection(child: child, familyId: viewModel.familyId)
+                                .id(child.id)
                         }
                     }
                 }
