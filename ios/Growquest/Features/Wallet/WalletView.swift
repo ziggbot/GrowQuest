@@ -6,12 +6,18 @@ import Supabase
 final class WalletViewModel {
     var balance: Int = 0
     var entries: [CoinLedgerEntry] = []
+    var activeRedemption: Redemption?
+    var minutesUsedToday: Int = 0
     var isLoading: Bool = false
     var errorMessage: String?
 
     let child: ChildProfile
+    let profileConfig: ProfileConfig?
 
-    init(child: ChildProfile) { self.child = child }
+    init(child: ChildProfile, profileConfig: ProfileConfig? = nil) {
+        self.child = child
+        self.profileConfig = profileConfig
+    }
 
     func reload() async {
         isLoading = true
@@ -37,6 +43,24 @@ final class WalletViewModel {
                 .limit(20)
                 .execute()
                 .value
+
+            let cal = Calendar(identifier: .iso8601)
+            let startOfToday = cal.startOfDay(for: Date())
+            let iso = ISO8601DateFormatter()
+            iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            let startStr = iso.string(from: startOfToday)
+
+            let todays: [Redemption] = try await supabase
+                .from("redemptions")
+                .select()
+                .eq("child_id", value: child.id)
+                .gte("started_at", value: startStr)
+                .order("started_at", ascending: false)
+                .execute()
+                .value
+
+            minutesUsedToday = todays.reduce(0) { $0 + $1.minutes }
+            activeRedemption = todays.first(where: \.isActive)
         } catch {
             errorMessage = (error as NSError).localizedDescription
         }
@@ -45,6 +69,7 @@ final class WalletViewModel {
 
 struct WalletView: View {
     @State var viewModel: WalletViewModel
+    @State private var showRedeem = false
 
     var body: some View {
         ScrollView {
@@ -61,6 +86,29 @@ struct WalletView: View {
                             .padding(.top, 4)
                     }
                     .frame(maxWidth: .infinity)
+                }
+
+                if let active = viewModel.activeRedemption {
+                    Kort {
+                        HStack(spacing: 12) {
+                            Text("🔓").font(.system(size: 28))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Skärmtid upplåst")
+                                    .font(.system(size: 14, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(Palette.purple)
+                                Text("\(active.minutesRemaining) min kvar")
+                                    .font(.caption)
+                                    .foregroundStyle(Palette.muted)
+                            }
+                            Spacer()
+                        }
+                    }
+                }
+
+                if viewModel.profileConfig != nil && viewModel.balance > 0 {
+                    Knapp(title: "Lös in skärmtid", style: .primary) {
+                        showRedeem = true
+                    }
                 }
 
                 if viewModel.entries.isEmpty {
@@ -102,6 +150,24 @@ struct WalletView: View {
         .background(Palette.bg.ignoresSafeArea())
         .task { await viewModel.reload() }
         .refreshable { await viewModel.reload() }
+        .sheet(isPresented: $showRedeem) {
+            if let pc = viewModel.profileConfig {
+                RedeemScreenTimeSheet(viewModel: makeRedeemViewModel(pc: pc))
+            }
+        }
+    }
+
+    private func makeRedeemViewModel(pc: ProfileConfig) -> RedeemScreenTimeViewModel {
+        let vm = RedeemScreenTimeViewModel(
+            child: viewModel.child,
+            multiplier: pc.screenTimeMultiplier,
+            dailyLimitMinutes: pc.dailyLimitMinutes,
+            usedTodayMinutes: viewModel.minutesUsedToday
+        )
+        vm.onRedeemed = { _ in
+            Task { await viewModel.reload() }
+        }
+        return vm
     }
 
     private func reasonLabel(_ raw: String) -> String {

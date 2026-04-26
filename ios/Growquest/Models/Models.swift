@@ -239,3 +239,45 @@ struct ChildBalance: Codable, Identifiable, Hashable {
         case balance
     }
 }
+
+// MARK: - Redemptions
+
+struct Redemption: Codable, Identifiable, Hashable {
+    let id: UUID
+    let familyId: UUID
+    let childId: UUID
+    let kind: String
+    let minutes: Int
+    let myntCost: Int
+    let startedAt: Date
+    let endsAt: Date
+
+    var isActive: Bool { endsAt > Date() }
+
+    var minutesRemaining: Int {
+        max(0, Int(endsAt.timeIntervalSinceNow / 60))
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case familyId = "family_id"
+        case childId = "child_id"
+        case kind
+        case minutes
+        case myntCost = "mynt_cost"
+        case startedAt = "started_at"
+        case endsAt = "ends_at"
+    }
+}
+
+/// Predicts the cost for a screen-time redemption client-side, so we can show
+/// it in the redeem sheet before calling the RPC. Server is the source of
+/// truth — this preview must match the SQL formula in 20260425110000.
+enum RedemptionPricing {
+    static let baseMyntPer30Min: Double = 80.0
+
+    static func estimatedCost(minutes: Int, multiplier: Double) -> Int {
+        Int((((Double(minutes) / 30.0) * baseMyntPer30Min * multiplier) / 5.0).rounded()) * 5
+    }
+}
+

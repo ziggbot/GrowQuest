@@ -116,6 +116,27 @@ jobs:
               -- expected
               null;
             end;
+
+            -- Set up profile_configs (balanced) and redeem 15 min of screen time.
+            insert into public.profile_configs
+              (family_id, profile_id, uppdrag_multiplier, screen_time_multiplier, daily_limit_minutes)
+            values (fid, 'balans', 1.00, 1.00, 90);
+
+            -- Redeem 15 min: cost = round(15/30 * 80 * 1.0 / 5) * 5 = 40 mynt.
+            perform public.redeem_screen_time(cid, 15);
+
+            select balance into bal from public.child_balances where child_id = cid;
+            if bal <> 10 then
+              raise exception 'expected balance=10 after redemption, got %', bal;
+            end if;
+
+            -- Insufficient mynt: redeeming 15 more requires 40, only 10 left.
+            begin
+              perform public.redeem_screen_time(cid, 15);
+              raise exception 'expected insufficient-mynt to fail';
+            exception when others then
+              null;
+            end;
           end $$;
           SQL
 

@@ -136,6 +136,35 @@ else
   red "  re-approve unexpectedly succeeded: $re"; exit 1
 fi
 
+step "redemption  upsert profile_configs + redeem 15 min of screen time"
+auth -X POST "$SUPABASE_URL/rest/v1/profile_configs?on_conflict=family_id" \
+  -H "Content-Type: application/json" \
+  -H "Prefer: resolution=merge-duplicates" \
+  -d "{\"family_id\":\"$fid\",\"profile_id\":\"balans\",\"uppdrag_multiplier\":1.00,\"screen_time_multiplier\":1.00,\"daily_limit_minutes\":90}" \
+  >/dev/null
+
+redeem=$(auth -X POST "$SUPABASE_URL/rest/v1/rpc/redeem_screen_time" \
+  -H "Content-Type: application/json" \
+  -d "{\"p_child_id\":\"$cid\",\"p_minutes\":15}")
+cost=$(jq -r '.mynt_cost // empty' <<<"$redeem")
+[ "$cost" = "40" ] || { red "  expected mynt_cost=40, got '$cost' (response: $redeem)"; exit 1; }
+green "  redeemed 15 min for $cost 🪙"
+
+bal_after=$(auth "$SUPABASE_URL/rest/v1/child_balances?child_id=eq.$cid&select=balance" \
+  | jq -r '.[0].balance // empty')
+[ "$bal_after" = "10" ] || { red "  expected balance=10 after redemption, got '$bal_after'"; exit 1; }
+green "  post-redemption balance: 10 🪙"
+
+step "redemption  insufficient mynt must fail"
+re2=$(auth -X POST "$SUPABASE_URL/rest/v1/rpc/redeem_screen_time" \
+  -H "Content-Type: application/json" \
+  -d "{\"p_child_id\":\"$cid\",\"p_minutes\":15}")
+if jq -e '.code // empty' <<<"$re2" >/dev/null 2>&1; then
+  green "  insufficient-mynt correctly rejected ($(jq -r '.message // .code' <<<"$re2"))"
+else
+  red "  expected insufficient-mynt failure, got: $re2"; exit 1
+fi
+
 echo
 green "✅ smoke test passed end-to-end against $SUPABASE_URL"
 echo "   test user: $email — delete via dashboard if you don't want it lingering"

@@ -114,8 +114,12 @@ struct HomeView: View {
                         parentDashboard
                     case .child(let childId):
                         if let child = viewModel.children.first(where: { $0.id == childId }) {
-                            ChildDashboardSection(child: child, familyId: viewModel.familyId)
-                                .id(child.id)
+                            ChildDashboardSection(
+                                child: child,
+                                familyId: viewModel.familyId,
+                                profileConfig: viewModel.profileConfig
+                            )
+                            .id(child.id)
                         }
                     }
                 }
@@ -275,8 +279,11 @@ struct HomeView: View {
                     Text("Plånbok").font(.headline).foregroundStyle(Palette.text)
                     ForEach(viewModel.children) { child in
                         NavigationLink {
-                            WalletView(viewModel: WalletViewModel(child: child))
-                                .navigationTitle("Plånbok")
+                            WalletView(viewModel: WalletViewModel(
+                                child: child,
+                                profileConfig: viewModel.profileConfig
+                            ))
+                            .navigationTitle("Plånbok")
                         } label: {
                             HStack {
                                 Text(child.avatarEmoji)
@@ -325,12 +332,16 @@ struct HomeView: View {
 private struct ChildDashboardSection: View {
     let child: ChildProfile
     let familyId: UUID
+    let profileConfig: ProfileConfig?
 
     var body: some View {
         VStack(spacing: 12) {
             NavigationLink {
-                WalletView(viewModel: WalletViewModel(child: child))
-                    .navigationTitle("Plånbok")
+                WalletView(viewModel: WalletViewModel(
+                    child: child,
+                    profileConfig: profileConfig
+                ))
+                .navigationTitle("Plånbok")
             } label: {
                 Kort {
                     HStack {
