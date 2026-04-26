@@ -4,7 +4,7 @@ Family chore & screen-time gamification app. Kids complete parent-approved missi
 
 ## Status
 
-**Phase 0 — repo scaffold.** Xcode project not committed (generated via [XcodeGen](https://github.com/yonki/XcodeGen) from `ios/project.yml`). See `ios/README.md` to bootstrap locally.
+**Phase 1 + Phase 2 core landed — testable v0.** Sign up → pick profile → add child → create mission → child marks done → parent approves → coins land in the wallet, all RLS-isolated per family. See `ios/README.md` for the on-phone test path. Xcode project not committed (generated via [XcodeGen](https://github.com/yonki/XcodeGen) from `ios/project.yml`).
 
 ## Quickstart (macOS)
 
@@ -16,6 +16,12 @@ supabase start
 ```
 
 Copy `.env.example` → `.env` and fill `SUPABASE_URL` / `SUPABASE_ANON_KEY` (anon only; never commit the service-role key).
+
+After `supabase start` (or after pointing `.env` at a cloud project), verify the schema and RPCs end-to-end without launching the app:
+
+```bash
+./scripts/smoke-cloud.sh
+```
 
 ## Repo map
 
@@ -33,6 +39,7 @@ scripts/      Local dev helpers
 - [Architecture](docs/architecture.md) — stack, data model, security, Stripe readiness
 - [Roadmap](docs/roadmap.md) — phase plan from prototype → App Store
 - [ADR 0001 — iOS + Supabase MVP](docs/decisions/0001-ios-supabase-mvp.md)
+- [ADR 0002 — Postgres-native authorization layer](docs/decisions/0002-postgres-native-authorization-layer.md)
 - [Privacy baseline](docs/privacy.md)
 
 ## Design reference
