@@ -165,6 +165,14 @@ else
   red "  expected insufficient-mynt failure, got: $re2"; exit 1
 fi
 
+step "progress  child_progress view exposes mynt_today + approved_missions"
+prog=$(auth "$SUPABASE_URL/rest/v1/child_progress?child_id=eq.$cid&select=mynt_today,approved_missions" | jq -r '.[0]')
+my_today=$(jq -r '.mynt_today' <<<"$prog")
+appr=$(jq -r '.approved_missions' <<<"$prog")
+[ "$my_today" = "50" ] || { red "  expected mynt_today=50, got '$my_today'"; exit 1; }
+[ "$appr" = "1" ]      || { red "  expected approved_missions=1, got '$appr'"; exit 1; }
+green "  mynt_today=$my_today, approved_missions=$appr"
+
 echo
 green "✅ smoke test passed end-to-end against $SUPABASE_URL"
 echo "   test user: $email — delete via dashboard if you don't want it lingering"

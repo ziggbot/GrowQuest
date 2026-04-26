@@ -244,6 +244,27 @@ struct HomeView: View {
                 }
             }
 
+            NavigationLink {
+                LeaderboardView(viewModel: LeaderboardViewModel(familyId: viewModel.familyId))
+                    .navigationTitle("Topplista")
+            } label: {
+                Kort {
+                    HStack(spacing: 10) {
+                        Text("🏆").font(.system(size: 26))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Superäventyrare")
+                                .font(.headline)
+                                .foregroundStyle(Palette.gold)
+                            Text("Vem samlar mest mynt idag?")
+                                .font(.caption)
+                                .foregroundStyle(Palette.muted)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right").foregroundStyle(Palette.muted)
+                    }
+                }
+            }
+
             Kort {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {

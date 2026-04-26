@@ -281,3 +281,97 @@ enum RedemptionPricing {
     }
 }
 
+// MARK: - Progress (leaderboard + character stages)
+
+struct ChildProgress: Codable, Identifiable, Hashable {
+    let childId: UUID
+    let familyId: UUID
+    let nickname: String
+    let avatarEmoji: String
+    let myntToday: Int
+    let approvedMissions: Int
+
+    var id: UUID { childId }
+
+    enum CodingKeys: String, CodingKey {
+        case childId = "child_id"
+        case familyId = "family_id"
+        case nickname
+        case avatarEmoji = "avatar_emoji"
+        case myntToday = "mynt_today"
+        case approvedMissions = "approved_missions"
+    }
+}
+
+/// Mirrors KARAKTÄR_STADIER + UPPDRAG_PER_NIVÅ from design/mockup.jsx.
+/// Stage = highest threshold ≤ approvedMissions count (cumulative all-time).
+struct KaraktärStadium: Identifiable, Hashable {
+    let level: Int          // 0…4 — index into the catalog
+    let threshold: Int      // approvedMissions needed to reach this stage
+    let namn: String
+    let beskrivning: String
+    let humör: String
+    let himmel: (UInt32, UInt32)
+    let mark: UInt32
+    let accentFärg: UInt32
+
+    var id: Int { level }
+
+    static func == (lhs: KaraktärStadium, rhs: KaraktärStadium) -> Bool {
+        lhs.level == rhs.level
+    }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(level)
+    }
+}
+
+enum KaraktärStadier {
+    static let all: [KaraktärStadium] = [
+        .init(level: 0, threshold: 0,
+              namn: "Soffpotatisen",
+              beskrivning: "Sitter och gapar... dags att röra på sig!",
+              humör: "trött",
+              himmel: (0x1A1A2E, 0x16213E),
+              mark: 0x1A1A2E,
+              accentFärg: 0x64748B),
+        .init(level: 1, threshold: 1,
+              namn: "Nyfikna utforskaren",
+              beskrivning: "Sitter upprätt och tittar nyfiket ut i världen!",
+              humör: "nyfiken",
+              himmel: (0x1E2D3D, 0x243447),
+              mark: 0x1A2A1A,
+              accentFärg: 0x60A5FA),
+        .init(level: 2, threshold: 2,
+              namn: "Aktiva äventyraren",
+              beskrivning: "Står upp med ett leende — rörlig och redo!",
+              humör: "aktiv",
+              himmel: (0x1A3A2A, 0x1E4D35),
+              mark: 0x1A3015,
+              accentFärg: 0x3DDC84),
+        .init(level: 3, threshold: 4,
+              namn: "Snabba löparen",
+              beskrivning: "Springer fritt i naturen — full av energi!",
+              humör: "energisk",
+              himmel: (0x0D3320, 0x1A5030),
+              mark: 0x1A3A18,
+              accentFärg: 0xF5C842),
+        .init(level: 4, threshold: 6,
+              namn: "Naturhjälten",
+              beskrivning: "Hoppar av glädje — stark, pigg och oslagbar!",
+              humör: "euforisk",
+              himmel: (0x0A2040, 0x1A3860),
+              mark: 0x1A3020,
+              accentFärg: 0xF472B6)
+    ]
+
+    static func current(for approvedMissions: Int) -> KaraktärStadium {
+        all.last { $0.threshold <= approvedMissions } ?? all[0]
+    }
+
+    /// Returns the next stage if any, or nil when already at the top.
+    static func next(after current: KaraktärStadium) -> KaraktärStadium? {
+        all.first { $0.level == current.level + 1 }
+    }
+}
+

@@ -137,6 +137,23 @@ jobs:
             exception when others then
               null;
             end;
+
+            -- child_progress view: 1 approved mission today, mynt_today=50.
+            declare
+              p_today int;
+              p_count int;
+            begin
+              select mynt_today, approved_missions
+                into p_today, p_count
+              from public.child_progress
+              where child_id = cid;
+              if p_today <> 50 then
+                raise exception 'child_progress.mynt_today expected 50, got %', p_today;
+              end if;
+              if p_count <> 1 then
+                raise exception 'child_progress.approved_missions expected 1, got %', p_count;
+              end if;
+            end;
           end $$;
           SQL
 

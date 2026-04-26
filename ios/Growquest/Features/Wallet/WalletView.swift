@@ -8,6 +8,7 @@ final class WalletViewModel {
     var entries: [CoinLedgerEntry] = []
     var activeRedemption: Redemption?
     var minutesUsedToday: Int = 0
+    var approvedMissions: Int = 0
     var isLoading: Bool = false
     var errorMessage: String?
 
@@ -17,6 +18,10 @@ final class WalletViewModel {
     init(child: ChildProfile, profileConfig: ProfileConfig? = nil) {
         self.child = child
         self.profileConfig = profileConfig
+    }
+
+    var stadium: KaraktärStadium {
+        KaraktärStadier.current(for: approvedMissions)
     }
 
     func reload() async {
@@ -61,6 +66,16 @@ final class WalletViewModel {
 
             minutesUsedToday = todays.reduce(0) { $0 + $1.minutes }
             activeRedemption = todays.first(where: \.isActive)
+
+            let progress: ChildProgress? = try? await supabase
+                .from("child_progress")
+                .select()
+                .eq("child_id", value: child.id)
+                .limit(1)
+                .single()
+                .execute()
+                .value
+            approvedMissions = progress?.approvedMissions ?? 0
         } catch {
             errorMessage = (error as NSError).localizedDescription
         }
@@ -87,6 +102,11 @@ struct WalletView: View {
                     }
                     .frame(maxWidth: .infinity)
                 }
+
+                CharacterStageCard(
+                    stadium: viewModel.stadium,
+                    approvedMissions: viewModel.approvedMissions
+                )
 
                 if let active = viewModel.activeRedemption {
                     Kort {
