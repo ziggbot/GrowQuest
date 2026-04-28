@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <title>GrowQuest — UX prototyp</title>
+    <style>
+      html, body {
+        margin: 0;
+        padding: 0;
+        background: #050810;
+        color: #f0f0f0;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        min-height: 100vh;
+      }
+      .label {
+        text-align: center;
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: rgba(255,255,255,0.45);
+        padding: 14px 0 8px;
+      }
+      .label span {
+        color: rgba(255,200,66,0.7);
+      }
+      #phone-frame {
+        max-width: 420px;
+        margin: 0 auto 24px;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 28px;
+        overflow: hidden;
+        background: #0d1117;
+        box-shadow: 0 0 60px rgba(0,0,0,0.6);
+      }
+      #root { min-height: 720px; }
+    </style>
+  </head>
+  <body>
+    <div class="label">
+      GrowQuest — UX prototype · <span>not the shipped iOS app</span>
+    </div>
+    <div id="phone-frame">
+      <div id="root"></div>
+    </div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

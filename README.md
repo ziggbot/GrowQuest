@@ -23,6 +23,23 @@ After `supabase start` (or after pointing `.env` at a cloud project), verify the
 ./scripts/smoke-cloud.sh
 ```
 
+## Quickstart (Windows / Linux PC, no Mac required)
+
+The iOS app needs Xcode (macOS-only) — but the **backend, schema, and the React UX prototype** all run fine on a PC.
+
+```bash
+# Backend: needs Docker Desktop + supabase CLI
+supabase start
+./scripts/smoke-cloud.sh                # asserts the full mission loop over HTTP
+
+# UX prototype in your browser (Vite + React; needs Node 18+)
+./scripts/run-mockup.sh                 # opens http://localhost:5173
+```
+
+Pure-Windows users without WSL: see [`design/web/README.md`](design/web/README.md) — three lines of `cd` / `npm install` / `npm run dev`.
+
+For shipping iOS builds without owning a Mac, see [`ios/README.md`](ios/README.md) — recommended path is renting a cloud Mac or using Fastlane → TestFlight from CI.
+
 ## Repo map
 
 ```
