@@ -38,6 +38,14 @@ supabase start
 
 Pure-Windows users without WSL: see [`design/web/README.md`](design/web/README.md) — three lines of `cd` / `npm install` / `npm run dev`.
 
+### Wiring up your Supabase cloud project
+
+```bash
+./scripts/setup-cloud.sh                # interactive wizard
+```
+
+Prompts for the project URL + anon key (input hidden), writes them to `.env` (gitignored), and offers to `supabase link` + `supabase db push` migrations to your cloud project. Service-role key is **never** written locally — it goes into GitHub Actions secrets only. After that, `./scripts/smoke-cloud.sh` exercises the whole mission loop against your real cloud project.
+
 For shipping iOS builds without owning a Mac, see [`ios/README.md`](ios/README.md) — recommended path is renting a cloud Mac or using Fastlane → TestFlight from CI.
 
 ## Repo map
