@@ -24,6 +24,26 @@
       .label span {
         color: rgba(255,200,66,0.7);
       }
+      nav.routes {
+        display: flex;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 0 12px;
+      }
+      nav.routes a {
+        font-size: 12px;
+        padding: 5px 12px;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.12);
+        color: rgba(240,240,240,0.65);
+        text-decoration: none;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      }
+      nav.routes a.active {
+        color: #f5c842;
+        border-color: #f5c842;
+        background: rgba(245,200,66,0.1);
+      }
       #phone-frame {
         max-width: 420px;
         margin: 0 auto 24px;
@@ -40,6 +60,25 @@
     <div class="label">
       GrowQuest — UX prototype · <span>not the shipped iOS app</span>
     </div>
+    <nav class="routes" id="route-nav">
+      <a href="#/" data-route="#/">App</a>
+      <a href="#/stages" data-route="#/stages">Stages gallery</a>
+    </nav>
+    <script>
+      // Mark the active route link.
+      const update = () => {
+        const cur = window.location.hash || "#/";
+        document.querySelectorAll("#route-nav a").forEach((a) => {
+          a.classList.toggle(
+            "active",
+            (cur.startsWith("#/stages") && a.dataset.route === "#/stages") ||
+            (!cur.startsWith("#/stages") && a.dataset.route === "#/")
+          );
+        });
+      };
+      window.addEventListener("hashchange", update);
+      window.addEventListener("DOMContentLoaded", update);
+    </script>
     <div id="phone-frame">
       <div id="root"></div>
     </div>

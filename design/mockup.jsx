@@ -33,7 +33,7 @@ const INTRESSEN = [
   { id:"vetenskap",   icon:"🔬", label:"Vetenskap"    },
 ];
 
-const KARAKTÄR_STADIER = [
+export const KARAKTÄR_STADIER = [
   { namn:"Soffpotatisen",      beskrivning:"Sitter och gapar... dags att röra på sig!", himmel:["#1a1a2e","#16213e"], mark:"#1a1a2e", humör:"trött",    accentFärg:"#64748b" },
   { namn:"Nyfikna utforskaren",beskrivning:"Sitter upprätt och tittar nyfiket ut i världen!", himmel:["#1e2d3d","#243447"], mark:"#1a2a1a", humör:"nyfiken",  accentFärg:"#60a5fa" },
   { namn:"Aktiva äventyraren", beskrivning:"Står upp med ett leende — rörlig och redo!", himmel:["#1a3a2a","#1e4d35"], mark:"#1a3015", humör:"aktiv",    accentFärg:"#3ddc84" },
@@ -41,7 +41,7 @@ const KARAKTÄR_STADIER = [
   { namn:"Naturhjälten",       beskrivning:"Hoppar av glädje — stark, pigg och oslagbar!", himmel:["#0a2040","#1a3860"], mark:"#1a3020", humör:"euforisk", accentFärg:"#f472b6" },
 ];
 
-const UPPDRAG_PER_NIVÅ = [0, 1, 2, 4, 6];
+export const UPPDRAG_PER_NIVÅ = [0, 1, 2, 4, 6];
 
 // ── STARTPROFILER ─────────────────────────────────────────────
 // Varje profil styr tre dimensioner:
@@ -653,7 +653,7 @@ function UppdragsDetalj({ uppdrag, onTillbaka, onSkickaIn }) {
 }
 
 // ── SVG-KARAKTÄR ──────────────────────────────────────────────
-function KaraktärSVG({ humör }) {
+export function KaraktärSVG({ humör }) {
   const HUD="#f4c08a", HUD2="#e8a86a", HÅR="#6B3A1F", HÅR2="#8B4E28";
   const ÖGA="#4a9e6b", PUPIL="#1a3a28", LÄP="#d4706a", KLÄDER="#8B5E3C", KLÄDER2="#6B4020";
 
@@ -857,7 +857,7 @@ function KaraktärSVG({ humör }) {
 }
 
 // ── KARAKTÄR-KORT (skog/nivå) ─────────────────────────────────
-function Karaktär({ nivå, totaltKlara }) {
+export function Karaktär({ nivå, totaltKlara }) {
   const s = KARAKTÄR_STADIER[nivå] ?? KARAKTÄR_STADIER[0];
   const humör = s.humör;
   const nästaGräns = UPPDRAG_PER_NIVÅ[nivå + 1] ?? UPPDRAG_PER_NIVÅ[UPPDRAG_PER_NIVÅ.length - 1];
