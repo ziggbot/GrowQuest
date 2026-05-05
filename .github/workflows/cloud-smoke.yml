@@ -1,0 +1,93 @@
+name: Cloud Supabase smoke
+
+# Pushes any new migrations to the linked cloud Supabase project, then runs
+# scripts/smoke-cloud.sh against it (sign-up trigger, RLS, approve_mission RPC,
+# redemption math, child_progress view).
+#
+# Required GitHub Actions secrets (repo → Settings → Secrets → Actions):
+#   SUPABASE_URL              https://<ref>.supabase.co
+#   SUPABASE_ANON_KEY         publishable anon key (eyJ…)
+#   SUPABASE_ACCESS_TOKEN     personal access token (supabase.com/dashboard/account/tokens)
+#   SUPABASE_DB_PASSWORD      database password for the project
+#
+# Notes:
+# - Email-confirmation must be DISABLED on the cloud project for the smoke
+#   test to obtain a session from sign-up. Dashboard → Authentication →
+#   Providers → Email → uncheck "Confirm email". (Re-enable before launch.)
+# - Triggers on push to main when supabase/** changes, and manually via the
+#   Actions tab ("Run workflow"). Does not run on PRs from forks (secrets
+#   are not exposed there).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/**"
+      - "scripts/smoke-cloud.sh"
+      - ".github/workflows/cloud-smoke.yml"
+
+concurrency:
+  group: cloud-smoke
+  cancel-in-progress: false  # serialize so two pushes don't race db push
+
+jobs:
+  deploy-and-smoke:
+    name: db push + smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ github.event_name == 'workflow_dispatch' || github.repository_owner != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify required secrets are set
+        run: |
+          missing=()
+          [ -n "${{ secrets.SUPABASE_URL }}" ]           || missing+=(SUPABASE_URL)
+          [ -n "${{ secrets.SUPABASE_ANON_KEY }}" ]      || missing+=(SUPABASE_ANON_KEY)
+          [ -n "${{ secrets.SUPABASE_ACCESS_TOKEN }}" ]  || missing+=(SUPABASE_ACCESS_TOKEN)
+          [ -n "${{ secrets.SUPABASE_DB_PASSWORD }}" ]   || missing+=(SUPABASE_DB_PASSWORD)
+          if [ ${#missing[@]} -gt 0 ]; then
+            echo "::error::Missing GitHub Actions secrets: ${missing[*]}"
+            echo "Add them in repo → Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Derive project ref from URL
+        id: ref
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        run: |
+          ref="$(printf '%s' "$SUPABASE_URL" | sed -E 's|^https?://([a-z0-9-]+)\.supabase\.co/?$|\1|')"
+          if [ -z "$ref" ] || [ "$ref" = "$SUPABASE_URL" ]; then
+            echo "::error::Could not derive project ref from SUPABASE_URL"
+            exit 1
+          fi
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
+      - name: Link Supabase project
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase link --project-ref "${{ steps.ref.outputs.ref }}"
+
+      - name: Push migrations
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push
+
+      - name: Smoke test
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: ./scripts/smoke-cloud.sh

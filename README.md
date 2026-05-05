@@ -46,6 +46,21 @@ Pure-Windows users without WSL: see [`design/web/README.md`](design/web/README.m
 
 Prompts for the project URL + anon key (input hidden), writes them to `.env` (gitignored), and offers to `supabase link` + `supabase db push` migrations to your cloud project. Service-role key is **never** written locally — it goes into GitHub Actions secrets only. After that, `./scripts/smoke-cloud.sh` exercises the whole mission loop against your real cloud project.
 
+### Running the smoke test from CI (no local CLI needed)
+
+The [`cloud-smoke.yml`](.github/workflows/cloud-smoke.yml) workflow pushes migrations + runs the smoke test against your cloud project on every push to `main` (and on demand via the Actions tab). Add these four secrets in **repo → Settings → Secrets and variables → Actions**:
+
+| Secret | Where to find it |
+|---|---|
+| `SUPABASE_URL` | Dashboard → Settings → API → "Project URL" |
+| `SUPABASE_ANON_KEY` | Dashboard → Settings → API → "anon public" |
+| `SUPABASE_ACCESS_TOKEN` | <https://supabase.com/dashboard/account/tokens> → "Generate new token" |
+| `SUPABASE_DB_PASSWORD` | The DB password you set when the project was created (Dashboard → Settings → Database → "Reset database password" if you've forgotten it) |
+
+Also: **Dashboard → Authentication → Providers → Email → uncheck "Confirm email"** (re-enable before launching) so the smoke test's sign-up step gets a session.
+
+Trigger it manually the first time: GitHub → Actions tab → "Cloud Supabase smoke" → "Run workflow". Watch it apply migrations and assert the full mission loop end-to-end.
+
 For shipping iOS builds without owning a Mac, see [`ios/README.md`](ios/README.md) — recommended path is renting a cloud Mac or using Fastlane → TestFlight from CI.
 
 ## Repo map
