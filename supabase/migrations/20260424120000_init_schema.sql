@@ -25,19 +25,24 @@ $$;
 -- ─── Tenant membership helper (single source of truth for RLS) ──────────────
 -- A SECURITY DEFINER function lets policies stay simple and consistent.
 -- Returns true if the calling user is a member of the given family.
+-- Uses plpgsql so the function body is bound lazily — `public.family_members`
+-- is defined later in this migration; plpgsql resolves it at first execution
+-- rather than at creation time.
 create or replace function public.is_family_member(fid uuid)
 returns boolean
-language sql
+language plpgsql
 security definer
 set search_path = public
 stable
 as $$
-  select exists (
+begin
+  return exists (
     select 1
     from public.family_members fm
     where fm.family_id = fid
       and fm.user_id   = auth.uid()
   );
+end;
 $$;
 
 revoke all on function public.is_family_member(uuid) from public;
