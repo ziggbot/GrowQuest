@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0d1117"/>
+  <circle cx="256" cy="256" r="180" fill="none" stroke="#f5c842" stroke-width="32"/>
+  <path d="M 332 256 L 232 256 L 232 296 L 292 296 Q 292 332 256 332 Q 220 332 220 256 Q 220 180 256 180 Q 280 180 296 200" fill="none" stroke="#f5c842" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="256" y="438" text-anchor="middle" fill="#3ddc84" font-family="system-ui, sans-serif" font-size="36" font-weight="700">GrowQuest</text>
+</svg>
