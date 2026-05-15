@@ -41,7 +41,7 @@ green() { printf "\033[32m%s\033[0m\n" "$*"; }
 yel()   { printf "\033[33m%s\033[0m\n" "$*"; }
 step()  { printf "\n\033[1m── %s\033[0m\n" "$*"; }
 
-email="smoke+$(date +%s)@growquest.test"
+email="smoke+$(date +%s)@growquest.app"
 password="smoke-test-password-12345"
 
 step "1/7  sign up new user $email"
