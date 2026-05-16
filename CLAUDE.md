@@ -40,6 +40,20 @@ When adding features: **ship the web change first**. Mirror to iOS only when exp
 - iOS: XcodeGen generates `ios/Growquest.xcodeproj` from `ios/project.yml` (the project file itself is gitignored).
 - Supabase CLI: `supabase start` for local dev, `supabase db reset` after migration edits. Migrations apply to both clients.
 
+## Applying migrations to cloud Supabase
+
+**Don't tell the user "you have to run this yourself" without checking this first.**
+
+The repo has a GitHub Actions workflow `.github/workflows/cloud-smoke.yml` that pushes pending migrations to the linked cloud Supabase project. Required secrets (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`) live in repo Settings → Secrets → Actions.
+
+Triggers:
+- **Auto**: push to `main` with changes under `supabase/**`
+- **Manual**: Actions tab → "Cloud Supabase smoke" → "Run workflow" (works from any branch)
+
+Workflow-dispatch isn't exposed in the current GitHub MCP toolset, so to apply a migration on a feature branch: commit the migration, push, then ask the user to click "Run workflow" in the Actions UI (or merge to main). After it finishes the cloud DB has the new schema and PostgREST has reloaded its cache automatically.
+
+If the user gets a `Could not find the 'X' column ... in the schema cache` error after we ship a migration, the cloud workflow hasn't run yet — that's the fix, not a code bug.
+
 ## Where to start if a task is unclear
 
 1. Check `docs/architecture.md` for the high-level model.
