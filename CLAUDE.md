@@ -42,17 +42,20 @@ When adding features: **ship the web change first**. Mirror to iOS only when exp
 
 ## Applying migrations to cloud Supabase
 
-**Don't tell the user "you have to run this yourself" without checking this first.**
-
-The repo has a GitHub Actions workflow `.github/workflows/cloud-smoke.yml` that pushes pending migrations to the linked cloud Supabase project. Required secrets (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`) live in repo Settings → Secrets → Actions.
+The repo has a GitHub Actions workflow `.github/workflows/cloud-smoke.yml` that pushes pending migrations to the linked cloud Supabase project and then runs smoke tests. Required secrets (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`) live in repo Settings → Secrets → Actions.
 
 Triggers:
-- **Auto**: push to `main` with changes under `supabase/**`
-- **Manual**: Actions tab → "Cloud Supabase smoke" → "Run workflow" (works from any branch)
+- **Auto on `main`**: push to `main` with changes under `supabase/**`
+- **Auto on `claude/**`**: push to any `claude/...` branch with changes under `supabase/**` — this is how Claude self-applies migrations without needing a human click
+- **Manual**: Actions tab → "Cloud Supabase smoke" → "Run workflow"
 
-Workflow-dispatch isn't exposed in the current GitHub MCP toolset, so to apply a migration on a feature branch: commit the migration, push, then ask the user to click "Run workflow" in the Actions UI (or merge to main). After it finishes the cloud DB has the new schema and PostgREST has reloaded its cache automatically.
+**The flow when shipping a migration from a Claude session:**
+1. Add the migration file under `supabase/migrations/`
+2. Commit and push to the current `claude/...` branch
+3. The workflow auto-runs (~2 min); migration applies and PostgREST cache reloads
+4. Verify the feature works end-to-end
 
-If the user gets a `Could not find the 'X' column ... in the schema cache` error after we ship a migration, the cloud workflow hasn't run yet — that's the fix, not a code bug.
+If the user gets a `Could not find the 'X' column ... in the schema cache` error right after a migration ships, the workflow hasn't finished yet (or failed) — check Actions tab. It's never a code-cache bug on the client.
 
 ## Where to start if a task is unclear
 

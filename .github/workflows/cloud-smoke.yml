@@ -14,14 +14,18 @@ name: Cloud Supabase smoke
 # - Email-confirmation must be DISABLED on the cloud project for the smoke
 #   test to obtain a session from sign-up. Dashboard → Authentication →
 #   Providers → Email → uncheck "Confirm email". (Re-enable before launch.)
-# - Triggers on push to main when supabase/** changes, and manually via the
-#   Actions tab ("Run workflow"). Does not run on PRs from forks (secrets
-#   are not exposed there).
+# - Triggers on push to main or claude/** branches when supabase/** changes,
+#   and manually via the Actions tab ("Run workflow"). The claude/** trigger
+#   lets the Claude agent auto-apply its own migrations to the cloud project
+#   without needing a human to click Run workflow. Does not run on PRs from
+#   forks (secrets are not exposed there).
 
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches:
+      - main
+      - "claude/**"
     paths:
       - "supabase/**"
       - "scripts/smoke-cloud.sh"
