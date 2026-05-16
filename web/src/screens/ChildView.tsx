@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import type { ChildProfile, Mission, MissionSubmission } from "../lib/types";
+import type { ChildProfile, Mission } from "../lib/types";
 import { C } from "../design/tokens";
-import { Kort, Pill, Knapp } from "../design/components";
+import { Kort, Pill } from "../design/components";
 
 export function ChildView({
   child,
@@ -13,11 +14,11 @@ export function ChildView({
   familyId: string;
   onOpenWallet: () => void;
 }) {
+  const nav = useNavigate();
   const [missions, setMissions] = useState<Mission[]>([]);
   const [submittedToday, setSubmittedToday] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
 
   async function reload() {
     setLoading(true);
@@ -51,24 +52,6 @@ export function ChildView({
     void reload();
   }, [child.id]);
 
-  async function submit(m: Mission) {
-    if (submittedToday.has(m.id)) return;
-    setErr(null);
-    setInfo(null);
-    try {
-      const { error } = await supabase.from("mission_submissions").insert({
-        family_id: familyId,
-        mission_id: m.id,
-        child_id: child.id
-      });
-      if (error) throw error;
-      setSubmittedToday((s) => new Set(s).add(m.id));
-      setInfo("Skickat in! Väntar på förälder.");
-    } catch (e) {
-      setErr((e as Error).message);
-    }
-  }
-
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <button
@@ -94,7 +77,7 @@ export function ChildView({
       </button>
 
       <div>
-        <h3 style={{ margin: "4px 0 8px", color: C.text }}>Hej {child.nickname}! Dagens uppdrag</h3>
+        <h3 style={{ margin: "4px 0 8px", color: C.text }}>Dagens uppdrag</h3>
         {loading && <p style={{ color: C.muted, fontSize: 13 }}>Laddar…</p>}
         {!loading && missions.length === 0 && (
           <Kort>
@@ -109,15 +92,14 @@ export function ChildView({
             return (
               <button
                 key={m.id}
-                onClick={() => submit(m)}
-                disabled={done}
+                onClick={() => nav(`/child/${child.id}/mission/${m.id}`)}
                 style={{
                   textAlign: "left",
                   padding: 14,
                   background: C.surface,
                   border: `1px solid ${C.border}`,
                   borderRadius: 14,
-                  cursor: done ? "default" : "pointer",
+                  cursor: "pointer",
                   color: C.text,
                   opacity: done ? 0.6 : 1,
                   display: "flex",
@@ -138,7 +120,6 @@ export function ChildView({
         </div>
       </div>
 
-      {info && <p style={{ color: C.green, fontSize: 13 }}>{info}</p>}
       {err && <p style={{ color: C.red, fontSize: 13 }}>{err}</p>}
     </div>
   );

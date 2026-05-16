@@ -1,14 +1,16 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useSession } from "./lib/session";
 import { AuthScreen } from "./screens/AuthScreen";
 import { HomeScreen } from "./screens/HomeScreen";
+import { ChildHomeScreen } from "./screens/ChildHomeScreen";
 import { ApprovalQueueScreen } from "./screens/ApprovalQueueScreen";
 import { WalletScreen } from "./screens/WalletScreen";
 import { LeaderboardScreen } from "./screens/LeaderboardScreen";
+import { MissionDetailScreen } from "./screens/MissionDetailScreen";
 import { C } from "./design/tokens";
 
 export function App() {
-  const { loading, user } = useSession();
+  const { loading, user, childId } = useSession();
 
   if (loading) {
     return (
@@ -23,11 +25,19 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<HomeScreen />} />
-        <Route path="/approve" element={<ApprovalQueueScreen />} />
+        <Route
+          path="/"
+          element={childId ? <ChildHomeScreen childId={childId} /> : <HomeScreen />}
+        />
         <Route path="/wallet/:childId" element={<WalletScreen />} />
         <Route path="/leaderboard" element={<LeaderboardScreen />} />
-        <Route path="*" element={<HomeScreen />} />
+        <Route path="/child/:childId/mission/:missionId" element={<MissionDetailScreen />} />
+        {/* Parent-only routes — in child mode they redirect home. */}
+        <Route
+          path="/approve"
+          element={childId ? <Navigate to="/" replace /> : <ApprovalQueueScreen />}
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );

@@ -1,11 +1,14 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "./supabase";
+import { childMode } from "./childMode";
 
 interface SessionState {
   loading: boolean;
   user: User | null;
   familyId: string | null;
+  childId: string | null;          // device-locked child id, null when in parent mode
+  setChildId: (id: string | null) => void;
   signOut: () => Promise<void>;
 }
 
@@ -14,6 +17,7 @@ const Ctx = createContext<SessionState | null>(null);
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [familyId, setFamilyId] = useState<string | null>(null);
+  const [childId, setChildIdState] = useState<string | null>(childMode.get());
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,12 +54,20 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  const setChildId = (id: string | null) => {
+    if (id) childMode.set(id);
+    else childMode.clear();
+    setChildIdState(id);
+  };
+
   const signOut = async () => {
+    childMode.clear();
+    setChildIdState(null);
     await supabase.auth.signOut();
   };
 
   return (
-    <Ctx.Provider value={{ loading, user, familyId, signOut }}>
+    <Ctx.Provider value={{ loading, user, familyId, childId, setChildId, signOut }}>
       {children}
     </Ctx.Provider>
   );
