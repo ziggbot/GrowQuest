@@ -130,6 +130,9 @@ export function ChildView({
                 key={m.id}
                 onClick={() => nav(`/child/${child.id}/mission/${m.id}`)}
                 style={{
+                  width: "100%",
+                  minWidth: 0,
+                  boxSizing: "border-box",
                   textAlign: "left",
                   padding: 14,
                   background: CK.surface,
@@ -159,7 +162,18 @@ export function ChildView({
                   {done ? "✓" : "🎯"}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: CK.text }}>{m.title}</div>
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 15,
+                      color: CK.text,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap"
+                    }}
+                  >
+                    {m.title}
+                  </div>
                   {m.description && (
                     <div
                       style={{
@@ -175,9 +189,12 @@ export function ChildView({
                     </div>
                   )}
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-end" }}>
-                  <PillKid text={`${m.reward_mynt} 🪙`} tint={CK.gold} />
-                  {done && <PillKid text="Inskickat" icon="⏳" tint={CK.purple} />}
+                <div style={{ flexShrink: 0 }}>
+                  {done ? (
+                    <PillKid text="Inskickat" icon="⏳" tint={CK.purple} />
+                  ) : (
+                    <PillKid text={`${m.reward_mynt} 🪙`} tint={CK.gold} />
+                  )}
                 </div>
               </button>
             );
