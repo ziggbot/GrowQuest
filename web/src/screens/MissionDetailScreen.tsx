@@ -4,8 +4,8 @@ import { supabase } from "../lib/supabase";
 import { useSession } from "../lib/session";
 import type { Mission } from "../lib/types";
 import { tipsFor } from "../lib/tips";
-import { C } from "../design/tokens";
-import { Kort, Knapp, Pill, ScreenContainer } from "../design/components";
+import { CK } from "../design/tokens";
+import { ChildScreenContainer, KortKid, KnappKid, PillKid } from "../design/components";
 
 export function MissionDetailScreen() {
   const { childId, missionId } = useParams<{ childId: string; missionId: string }>();
@@ -30,7 +30,6 @@ export function MissionDetailScreen() {
           .single();
         if (error) throw error;
         setMission(data as Mission);
-        // Was it already submitted today?
         if (childId) {
           const start = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
           const { data: subs } = await supabase
@@ -70,89 +69,123 @@ export function MissionDetailScreen() {
 
   if (loading) {
     return (
-      <ScreenContainer>
-        <p style={{ color: C.muted, textAlign: "center", marginTop: 80 }}>Laddar…</p>
-      </ScreenContainer>
+      <ChildScreenContainer>
+        <p style={{ color: CK.muted, textAlign: "center", marginTop: 80 }}>Laddar…</p>
+      </ChildScreenContainer>
     );
   }
 
   if (!mission) {
     return (
-      <ScreenContainer>
-        <p style={{ color: C.red, textAlign: "center" }}>Hittade inte uppdraget.</p>
-        <Knapp title="Tillbaka" onClick={() => nav(-1)} />
-      </ScreenContainer>
+      <ChildScreenContainer>
+        <p style={{ color: CK.red, textAlign: "center" }}>Hittade inte uppdraget.</p>
+        <KnappKid title="Tillbaka" onClick={() => nav(-1)} />
+      </ChildScreenContainer>
     );
   }
 
   const tips = tipsFor(mission.title, mission.description);
 
   return (
-    <ScreenContainer>
+    <ChildScreenContainer>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
         <button
           onClick={() => nav(-1)}
-          style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", marginBottom: 8 }}
+          style={{
+            background: CK.surface,
+            border: `1px solid ${CK.border}`,
+            color: CK.text,
+            cursor: "pointer",
+            marginBottom: 12,
+            padding: "6px 12px",
+            borderRadius: 999,
+            fontSize: 13,
+            fontWeight: 600,
+            boxShadow: CK.shadowSoft
+          }}
         >
           ‹ Tillbaka
         </button>
 
-        {/* Hero */}
-        <div
-          style={{
-            textAlign: "center",
-            padding: "24px 16px 28px",
-            background: `linear-gradient(180deg, ${C.surfaceHov}, transparent)`,
-            borderRadius: 22,
-            border: `1px solid ${C.border}`,
-            marginBottom: 14
-          }}
-        >
-          <div style={{ fontSize: 64, lineHeight: 1 }}>{tips.emoji}</div>
-          <h1 style={{ fontSize: 24, margin: "10px 0 4px", fontWeight: 800 }}>{mission.title}</h1>
+        {/* Hero card — big emoji on a soft cyan halo, white card */}
+        <KortKid style={{ textAlign: "center", padding: "28px 18px 24px", marginBottom: 14 }}>
+          <div
+            style={{
+              width: 110,
+              height: 110,
+              borderRadius: "50%",
+              background: `radial-gradient(circle at 50% 40%, ${CK.accentFade} 0%, transparent 70%)`,
+              margin: "0 auto 8px",
+              display: "grid",
+              placeItems: "center"
+            }}
+          >
+            <div style={{ fontSize: 72, lineHeight: 1 }}>{tips.emoji}</div>
+          </div>
+          <h1 style={{ fontSize: 24, margin: "6px 0 8px", fontWeight: 800, color: CK.text }}>
+            {mission.title}
+          </h1>
           {mission.description && (
-            <p style={{ color: C.text, opacity: 0.85, fontSize: 14, margin: "8px 0 12px", lineHeight: 1.4 }}>
+            <p
+              style={{
+                color: CK.textSoft,
+                fontSize: 14,
+                margin: "4px 0 14px",
+                lineHeight: 1.45
+              }}
+            >
               {mission.description}
             </p>
           )}
-          <Pill text={`${mission.reward_mynt} 🪙`} tint={C.gold} />
+          <PillKid text={`${mission.reward_mynt} 🪙`} tint={CK.gold} />
+        </KortKid>
+
+        {/* Cheer banner */}
+        <div
+          style={{
+            background: `linear-gradient(135deg, ${CK.accent}, ${CK.accentDeep})`,
+            borderRadius: 18,
+            padding: "14px 18px",
+            marginBottom: 14,
+            color: "#ffffff",
+            textAlign: "center",
+            boxShadow: CK.shadow
+          }}
+        >
+          <p style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{tips.intro}</p>
         </div>
 
-        {/* Cheer */}
-        <Kort style={{ marginBottom: 14 }}>
-          <p
+        {/* Tips */}
+        <KortKid style={{ marginBottom: 14 }}>
+          <h3
             style={{
-              margin: 0,
-              fontSize: 16,
-              color: C.gold,
-              fontWeight: 700,
-              textAlign: "center"
+              margin: "0 0 10px",
+              color: CK.text,
+              fontSize: 13,
+              fontWeight: 800,
+              letterSpacing: 0.4,
+              textTransform: "uppercase"
             }}
           >
-            {tips.intro}
-          </p>
-        </Kort>
-
-        {/* Tips */}
-        <Kort style={{ marginBottom: 14 }}>
-          <h3 style={{ margin: "0 0 8px", color: C.text, fontSize: 15 }}>💡 Tips</h3>
-          <ul style={{ margin: 0, paddingLeft: 18, color: C.text, fontSize: 14, lineHeight: 1.5 }}>
+            💡 Tips
+          </h3>
+          <ul style={{ margin: 0, paddingLeft: 18, color: CK.textSoft, fontSize: 14, lineHeight: 1.55 }}>
             {tips.tips.map((t, i) => (
               <li key={i} style={{ marginBottom: 6 }}>
                 {t}
               </li>
             ))}
           </ul>
-        </Kort>
+        </KortKid>
 
         {/* Cheer footer */}
         <p
           style={{
-            color: C.muted,
+            color: CK.muted,
             fontSize: 13,
             fontStyle: "italic",
             textAlign: "center",
-            margin: "0 0 16px"
+            margin: "0 0 18px"
           }}
         >
           {tips.cheer}
@@ -160,28 +193,28 @@ export function MissionDetailScreen() {
 
         {/* Submit */}
         {submitted ? (
-          <Kort>
+          <KortKid>
             <div style={{ textAlign: "center", padding: "12px 8px" }}>
-              <div style={{ fontSize: 40 }}>🎉</div>
-              <p style={{ color: C.green, fontWeight: 700, margin: "8px 0 4px" }}>
+              <div style={{ fontSize: 44 }}>🎉</div>
+              <p style={{ color: CK.green, fontWeight: 800, margin: "8px 0 4px", fontSize: 16 }}>
                 Bra jobbat! Inskickat till föräldern.
               </p>
-              <p style={{ color: C.muted, fontSize: 12, margin: "0 0 12px" }}>
+              <p style={{ color: CK.muted, fontSize: 12, margin: "0 0 14px" }}>
                 När föräldern godkänner får du dina mynt.
               </p>
-              <Knapp title="Tillbaka till uppdrag" onClick={() => nav(-1)} />
+              <KnappKid title="Tillbaka till uppdrag" onClick={() => nav(-1)} />
             </div>
-          </Kort>
+          </KortKid>
         ) : (
-          <Knapp
+          <KnappKid
             title={submitting ? "Skickar…" : "Klar! 🎉"}
             onClick={submit}
             disabled={submitting}
           />
         )}
 
-        {err && <p style={{ color: C.red, fontSize: 13, marginTop: 12, textAlign: "center" }}>{err}</p>}
+        {err && <p style={{ color: CK.red, fontSize: 13, marginTop: 12, textAlign: "center" }}>{err}</p>}
       </div>
-    </ScreenContainer>
+    </ChildScreenContainer>
   );
 }

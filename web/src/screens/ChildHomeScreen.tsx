@@ -4,8 +4,8 @@ import { supabase } from "../lib/supabase";
 import { useSession } from "../lib/session";
 import type { ChildProfile } from "../lib/types";
 import { ChildView } from "./ChildView";
-import { C } from "../design/tokens";
-import { Knapp, ScreenContainer } from "../design/components";
+import { CK } from "../design/tokens";
+import { ChildScreenContainer, KnappKid } from "../design/components";
 
 export function ChildHomeScreen({ childId }: { childId: string }) {
   const { familyId, signOut } = useSession();
@@ -27,51 +27,53 @@ export function ChildHomeScreen({ childId }: { childId: string }) {
 
   if (err) {
     return (
-      <ScreenContainer>
-        <Knapp title="Logga ut" onClick={signOut} />
-        <p style={{ color: C.red, textAlign: "center", marginTop: 16 }}>{err}</p>
-      </ScreenContainer>
+      <ChildScreenContainer>
+        <KnappKid title="Logga ut" onClick={signOut} />
+        <p style={{ color: CK.red, textAlign: "center", marginTop: 16 }}>{err}</p>
+      </ChildScreenContainer>
     );
   }
 
   if (!child || !familyId) {
     return (
-      <ScreenContainer>
-        <p style={{ color: C.muted, textAlign: "center", marginTop: 80 }}>Laddar…</p>
-      </ScreenContainer>
+      <ChildScreenContainer>
+        <p style={{ color: CK.muted, textAlign: "center", marginTop: 80 }}>Laddar…</p>
+      </ChildScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer>
+    <ChildScreenContainer>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
         {/* Top bar */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            padding: "8px 4px 12px",
-            borderBottom: `1px solid ${C.border}`,
-            marginBottom: 12,
-            gap: 8
+            padding: "6px 4px 14px",
+            marginBottom: 8,
+            gap: 10
           }}
         >
-          <span style={{ fontSize: 28 }}>{child.avatar_emoji}</span>
+          <span style={{ fontSize: 30 }}>{child.avatar_emoji}</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>Hej {child.nickname}!</div>
-            <div style={{ color: C.muted, fontSize: 11 }}>Dagens uppdrag väntar.</div>
+            <div style={{ fontWeight: 800, fontSize: 17, color: CK.text }}>
+              Hej {child.nickname}!
+            </div>
+            <div style={{ color: CK.textSoft, fontSize: 12 }}>Dagens uppdrag väntar.</div>
           </div>
           <button
             onClick={() => nav(`/wallet/${child.id}`)}
             style={{
-              background: C.surfaceHov,
-              border: `1px solid ${C.border}`,
+              background: CK.surface,
+              border: `1px solid ${CK.border}`,
               borderRadius: 999,
-              padding: "6px 12px",
-              color: C.gold,
+              padding: "8px 14px",
+              color: CK.gold,
               cursor: "pointer",
               fontSize: 13,
-              fontWeight: 600,
+              fontWeight: 700,
+              boxShadow: CK.shadowSoft,
               display: "flex",
               alignItems: "center",
               gap: 4
@@ -81,7 +83,14 @@ export function ChildHomeScreen({ childId }: { childId: string }) {
           </button>
           <button
             onClick={signOut}
-            style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 13 }}
+            style={{
+              background: "none",
+              border: "none",
+              color: CK.muted,
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 600
+            }}
           >
             Logga ut
           </button>
@@ -89,6 +98,6 @@ export function ChildHomeScreen({ childId }: { childId: string }) {
 
         <ChildView child={child} familyId={familyId} onOpenWallet={() => nav(`/wallet/${child.id}`)} />
       </div>
-    </ScreenContainer>
+    </ChildScreenContainer>
   );
 }

@@ -16,3 +16,32 @@ export const C = {
   text: "#f0f0f0",
   muted: "rgba(240,240,240,0.45)"
 } as const;
+
+// Child theme — Pokémon Go-inspired: bright sky, warm cream, soft cyan,
+// white cards with cozy shadows, deep navy text.
+export const CK = {
+  bgGradTop: "#cfe9f7",
+  bgGradMid: "#fde7c4",
+  bgGradBot: "#fff4dc",
+  surface: "#ffffff",
+  surfaceSoft: "#fff8e8",
+  surfaceMuted: "#f3edde",
+  border: "rgba(36,58,82,0.08)",
+  borderStrong: "rgba(36,58,82,0.18)",
+  shadow: "0 6px 18px rgba(140,100,60,0.12)",
+  shadowSoft: "0 2px 8px rgba(140,100,60,0.08)",
+  text: "#243a52",
+  textSoft: "#3b5673",
+  muted: "#8aa0b8",
+  accent: "#1ec0d6",
+  accentDeep: "#0fa4b8",
+  accentFade: "rgba(30,192,214,0.14)",
+  gold: "#f5b400",
+  goldFade: "rgba(245,180,0,0.16)",
+  green: "#2bb673",
+  greenFade: "rgba(43,182,115,0.14)",
+  red: "#ff6464",
+  redFade: "rgba(255,100,100,0.14)",
+  purple: "#7a6bd6",
+  purpleFade: "rgba(122,107,214,0.14)"
+} as const;
