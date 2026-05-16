@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { Mission, Recurrence } from "../lib/types";
+import type { ChildProfile, Mission, Recurrence } from "../lib/types";
 import { MISSION_TEMPLATES, estimateMissionReward, type MissionTemplate } from "../lib/templates";
 import { C } from "../design/tokens";
 import { Kort, Knapp, Input } from "../design/components";
@@ -16,12 +16,14 @@ export function CreateMissionSheet({
   familyId,
   userId,
   multiplier,
+  children,
   onClose,
   onCreated
 }: {
   familyId: string;
   userId: string;
   multiplier: number;
+  children: ChildProfile[];
   onClose: () => void;
   onCreated: (m: Mission) => void;
 }) {
@@ -30,6 +32,7 @@ export function CreateMissionSheet({
   const [reward, setReward] = useState(60);
   const [recurrence, setRecurrence] = useState<Recurrence>("daily");
   const [pickedTemplate, setPickedTemplate] = useState<string | null>(null);
+  const [assignedChildId, setAssignedChildId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -56,7 +59,8 @@ export function CreateMissionSheet({
         reward_mynt: reward,
         recurrence,
         active: true,
-        created_by: userId
+        created_by: userId,
+        assigned_child_id: assignedChildId
       };
       const { data, error } = await supabase.from("missions").insert(row).select().single();
       if (error) throw error;
@@ -109,6 +113,52 @@ export function CreateMissionSheet({
                   >
                     {t.title}
                   </span>
+                </button>
+              );
+            })}
+          </div>
+        </Kort>
+
+        <Kort>
+          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>För vem?</label>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            <button
+              onClick={() => setAssignedChildId(null)}
+              style={{
+                padding: "6px 12px",
+                background: assignedChildId === null ? `${C.gold}22` : C.surfaceHov,
+                border: `${assignedChildId === null ? 2 : 1}px solid ${assignedChildId === null ? C.gold : C.border}`,
+                borderRadius: 999,
+                cursor: "pointer",
+                color: assignedChildId === null ? C.gold : C.text,
+                fontSize: 13,
+                fontWeight: 500
+              }}
+            >
+              Alla barn
+            </button>
+            {children.map((c) => {
+              const isOn = assignedChildId === c.id;
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setAssignedChildId(c.id)}
+                  style={{
+                    padding: "6px 12px",
+                    background: isOn ? `${C.gold}22` : C.surfaceHov,
+                    border: `${isOn ? 2 : 1}px solid ${isOn ? C.gold : C.border}`,
+                    borderRadius: 999,
+                    cursor: "pointer",
+                    color: isOn ? C.gold : C.text,
+                    fontSize: 13,
+                    fontWeight: 500,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6
+                  }}
+                >
+                  <span>{c.avatar_emoji}</span>
+                  <span>{c.nickname}</span>
                 </button>
               );
             })}

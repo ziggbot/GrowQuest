@@ -2,9 +2,10 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useSession } from "../lib/session";
-import type { ChildProfile, Mission } from "../lib/types";
+import type { ChildProfile, Mission, MissionSubmission } from "../lib/types";
 import { CK } from "../design/tokens";
 import { KortKid, PillKid } from "../design/components";
+import { MissionHistorySheet } from "./MissionHistorySheet";
 
 export function ChildView({
   child,
@@ -20,6 +21,7 @@ export function ChildView({
   const isParentPreview = deviceChildId === null;
   const [missions, setMissions] = useState<Mission[]>([]);
   const [submittedToday, setSubmittedToday] = useState<Set<string>>(new Set());
+  const [showHistory, setShowHistory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
 
@@ -27,6 +29,15 @@ export function ChildView({
     setLoading(true);
     setErr(null);
     try {
+      const now = new Date();
+      const startOfToday = new Date(now);
+      startOfToday.setHours(0, 0, 0, 0);
+      // ISO week start (Monday)
+      const startOfWeek = new Date(now);
+      const dow = (startOfWeek.getDay() + 6) % 7; // 0 = Monday
+      startOfWeek.setDate(startOfWeek.getDate() - dow);
+      startOfWeek.setHours(0, 0, 0, 0);
+
       const [mRes, sRes] = await Promise.all([
         supabase
           .from("missions")
@@ -36,14 +47,46 @@ export function ChildView({
           .order("created_at", { ascending: false }),
         supabase
           .from("mission_submissions")
-          .select("mission_id")
+          .select("mission_id, status, submitted_at, reviewed_at")
           .eq("child_id", child.id)
-          .gte("submitted_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
       ]);
       if (mRes.error) throw mRes.error;
       if (sRes.error) throw sRes.error;
-      setMissions((mRes.data ?? []) as Mission[]);
-      setSubmittedToday(new Set((sRes.data ?? []).map((r: any) => r.mission_id)));
+
+      const allMissions = (mRes.data ?? []) as Mission[];
+      const allSubs = (sRes.data ?? []) as Pick<
+        MissionSubmission,
+        "mission_id" | "status" | "submitted_at" | "reviewed_at"
+      >[];
+
+      const todaySubmitted = new Set<string>();
+      const hiddenApproved = new Set<string>();
+
+      for (const sub of allSubs) {
+        if (new Date(sub.submitted_at) >= startOfToday) {
+          todaySubmitted.add(sub.mission_id);
+        }
+        if (sub.status !== "approved") continue;
+        const mission = allMissions.find((m) => m.id === sub.mission_id);
+        if (!mission) continue;
+        const reviewed = sub.reviewed_at ? new Date(sub.reviewed_at) : null;
+        if (mission.recurrence === "once") {
+          hiddenApproved.add(sub.mission_id);
+        } else if (mission.recurrence === "daily" && reviewed && reviewed >= startOfToday) {
+          hiddenApproved.add(sub.mission_id);
+        } else if (mission.recurrence === "weekly" && reviewed && reviewed >= startOfWeek) {
+          hiddenApproved.add(sub.mission_id);
+        }
+      }
+
+      const visible = allMissions.filter((m) => {
+        if (m.assigned_child_id !== null && m.assigned_child_id !== child.id) return false;
+        if (hiddenApproved.has(m.id)) return false;
+        return true;
+      });
+
+      setMissions(visible);
+      setSubmittedToday(todaySubmitted);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -203,6 +246,35 @@ export function ChildView({
       </div>
 
       {err && <p style={{ color: CK.red, fontSize: 13 }}>{err}</p>}
+
+      <button
+        onClick={() => setShowHistory(true)}
+        style={{
+          background: "transparent",
+          border: `1px solid ${CK.border}`,
+          borderRadius: 14,
+          padding: "10px 16px",
+          color: CK.muted,
+          cursor: "pointer",
+          fontSize: 13,
+          fontWeight: 600,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: 6,
+          margin: "4px auto 0"
+        }}
+      >
+        🕓 Historik
+      </button>
+
+      {showHistory && (
+        <MissionHistorySheet
+          child={child}
+          familyId={familyId}
+          onClose={() => setShowHistory(false)}
+        />
+      )}
     </div>
   );
 

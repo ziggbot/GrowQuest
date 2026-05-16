@@ -41,6 +41,7 @@ export interface Mission {
   recurrence: Recurrence;
   active: boolean;
   created_by: string;
+  assigned_child_id: string | null;
 }
 
 export type SubmissionStatus = "pending" | "approved" | "rejected";

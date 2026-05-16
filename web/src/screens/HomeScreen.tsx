@@ -5,7 +5,8 @@ import type {
   ChildProfile,
   Mission,
   MissionSubmission,
-  ProfileConfig
+  ProfileConfig,
+  SubmissionStatus
 } from "../lib/types";
 import { useSession } from "../lib/session";
 import { PROFILER } from "../lib/profiler";
@@ -18,6 +19,8 @@ import { ChildView } from "./ChildView";
 
 type Perspective = { kind: "parent" } | { kind: "child"; id: string };
 
+type TodaySubMap = Record<string, Record<string, SubmissionStatus>>;
+
 export function HomeScreen() {
   const { user, familyId, signOut } = useSession();
   const nav = useNavigate();
@@ -25,6 +28,7 @@ export function HomeScreen() {
   const [children, setChildren] = useState<ChildProfile[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
+  const [todaySubs, setTodaySubs] = useState<TodaySubMap>({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [showAddChild, setShowAddChild] = useState(false);
@@ -36,21 +40,42 @@ export function HomeScreen() {
     setLoading(true);
     setErr(null);
     try {
-      const [pcRes, kidsRes, mRes, pRes] = await Promise.all([
+      const startOfToday = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+      const [pcRes, kidsRes, mRes, pRes, todayRes] = await Promise.all([
         supabase.from("profile_configs").select("*").eq("family_id", familyId).maybeSingle(),
         supabase.from("child_profiles").select("*").eq("family_id", familyId).order("created_at"),
         supabase.from("missions").select("*").eq("family_id", familyId).eq("active", true),
-        supabase.from("mission_submissions").select("id").eq("family_id", familyId).eq("status", "pending")
+        supabase.from("mission_submissions").select("id").eq("family_id", familyId).eq("status", "pending"),
+        supabase
+          .from("mission_submissions")
+          .select("mission_id, child_id, status")
+          .eq("family_id", familyId)
+          .gte("submitted_at", startOfToday)
       ]);
       if (pcRes.error && pcRes.error.code !== "PGRST116") throw pcRes.error;
       if (kidsRes.error) throw kidsRes.error;
       if (mRes.error) throw mRes.error;
       if (pRes.error) throw pRes.error;
+      if (todayRes.error) throw todayRes.error;
+
+      const subMap: TodaySubMap = {};
+      for (const sub of (todayRes.data ?? []) as Pick<MissionSubmission, "mission_id" | "child_id" | "status">[]) {
+        if (!subMap[sub.child_id]) subMap[sub.child_id] = {};
+        const existing = subMap[sub.child_id][sub.mission_id];
+        if (
+          !existing ||
+          existing === "rejected" ||
+          (existing === "pending" && sub.status === "approved")
+        ) {
+          subMap[sub.child_id][sub.mission_id] = sub.status;
+        }
+      }
 
       setProfile(pcRes.data as ProfileConfig | null);
       setChildren((kidsRes.data ?? []) as ChildProfile[]);
       setMissions((mRes.data ?? []) as Mission[]);
       setPendingCount(pRes.data?.length ?? 0);
+      setTodaySubs(subMap);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -152,6 +177,7 @@ export function HomeScreen() {
             children={children}
             missions={missions}
             pendingCount={pendingCount}
+            todaySubs={todaySubs}
             onAddChild={() => setShowAddChild(true)}
             onCreateMission={() => setShowCreateMission(true)}
             onOpenWallet={(c) => nav(`/wallet/${c.id}`)}
@@ -179,6 +205,7 @@ export function HomeScreen() {
             familyId={familyId}
             userId={user!.id}
             multiplier={profileEntry.uppdrag_multiplier}
+            children={children}
             onClose={() => setShowCreateMission(false)}
             onCreated={(m) => {
               setMissions((ms) => [m, ...ms]);
@@ -230,6 +257,7 @@ function ParentDashboard({
   children,
   missions,
   pendingCount,
+  todaySubs,
   onAddChild,
   onCreateMission,
   onOpenWallet,
@@ -240,6 +268,7 @@ function ParentDashboard({
   children: ChildProfile[];
   missions: Mission[];
   pendingCount: number;
+  todaySubs: TodaySubMap;
   onAddChild: () => void;
   onCreateMission: () => void;
   onOpenWallet: (c: ChildProfile) => void;
@@ -318,7 +347,7 @@ function ParentDashboard({
 
       <Kort>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-          <h3 style={{ margin: 0, flex: 1 }}>Aktiva uppdrag</h3>
+          <h3 style={{ margin: 0, flex: 1 }}>Dagens aktiva uppdrag</h3>
           <button
             onClick={onCreateMission}
             style={{ background: "none", border: "none", color: C.gold, fontWeight: 700, cursor: "pointer", fontSize: 14 }}
@@ -329,13 +358,41 @@ function ParentDashboard({
         {missions.length === 0 ? (
           <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>Inga uppdrag än. Skapa det första!</p>
         ) : (
-          <div style={{ display: "grid", gap: 6 }}>
-            {missions.map((m) => (
-              <div key={m.id} style={{ display: "flex", alignItems: "center" }}>
-                <span style={{ flex: 1 }}>{m.title}</span>
-                <Pill text={`${m.reward_mynt} 🪙`} tint={C.gold} />
-              </div>
-            ))}
+          <div style={{ display: "grid", gap: 14 }}>
+            {children.map((c) => {
+              const childMissions = missions.filter((m) => m.assigned_child_id === c.id);
+              if (childMissions.length === 0) return null;
+              return (
+                <ChildMissionGroup
+                  key={c.id}
+                  child={c}
+                  missions={childMissions}
+                  subs={todaySubs[c.id] ?? {}}
+                />
+              );
+            })}
+            {(() => {
+              const broadcast = missions.filter((m) => m.assigned_child_id === null);
+              if (broadcast.length === 0) return null;
+              return (
+                <div style={{ display: "grid", gap: 6 }}>
+                  <div
+                    style={{
+                      color: C.muted,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      letterSpacing: 0.3,
+                      textTransform: "uppercase"
+                    }}
+                  >
+                    Alla barn
+                  </div>
+                  {broadcast.map((m) => (
+                    <MissionLine key={m.id} mission={m} status={null} />
+                  ))}
+                </div>
+              );
+            })()}
           </div>
         )}
       </Kort>
@@ -368,4 +425,61 @@ function ParentDashboard({
       )}
     </div>
   );
+}
+
+function ChildMissionGroup({
+  child,
+  missions,
+  subs
+}: {
+  child: ChildProfile;
+  missions: Mission[];
+  subs: Record<string, SubmissionStatus>;
+}) {
+  return (
+    <div style={{ display: "grid", gap: 6 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <span style={{ fontSize: 18 }}>{child.avatar_emoji}</span>
+        <span style={{ fontWeight: 700, color: C.text, fontSize: 14 }}>{child.nickname}</span>
+      </div>
+      {missions.map((m) => (
+        <MissionLine key={m.id} mission={m} status={subs[m.id] ?? null} />
+      ))}
+    </div>
+  );
+}
+
+function MissionLine({ mission, status }: { mission: Mission; status: SubmissionStatus | null }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        paddingLeft: 8
+      }}
+    >
+      <span
+        style={{
+          flex: 1,
+          color: C.text,
+          fontSize: 14,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap"
+        }}
+      >
+        {mission.title}
+      </span>
+      <Pill text={`${mission.reward_mynt} 🪙`} tint={C.gold} />
+      <StatusPill status={status} />
+    </div>
+  );
+}
+
+function StatusPill({ status }: { status: SubmissionStatus | null }) {
+  if (status === null) return <Pill text="Ej startad" tint={C.muted} />;
+  if (status === "pending") return <Pill text="Inskickad" icon="⏳" tint={C.purple} />;
+  if (status === "approved") return <Pill text="Godkänd" icon="✅" tint={C.green} />;
+  return <Pill text="Nekad" tint={C.red} />;
 }
