@@ -10,10 +10,14 @@ final class HomeViewModel {
     var pendingCount: Int = 0
     var isLoading: Bool = false
     var errorMessage: String?
+    var parentMissionsVM: ParentMissionsViewModel
 
     let familyId: UUID
 
-    init(familyId: UUID) { self.familyId = familyId }
+    init(familyId: UUID) {
+        self.familyId = familyId
+        self.parentMissionsVM = ParentMissionsViewModel(familyId: familyId)
+    }
 
     var needsProfile: Bool { profileConfig == nil }
     var needsChild: Bool { profileConfig != nil && children.isEmpty }
@@ -60,6 +64,7 @@ final class HomeViewModel {
             self.children = kids
             self.missions = m
             self.pendingCount = pending.count
+            await parentMissionsVM.reload(children: kids, missions: m)
         } catch {
             errorMessage = (error as NSError).localizedDescription
         }
@@ -265,35 +270,12 @@ struct HomeView: View {
                 }
             }
 
-            Kort {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Aktiva uppdrag").font(.headline).foregroundStyle(Palette.text)
-                        Spacer()
-                        Button {
-                            showCreateMission = true
-                        } label: {
-                            Label("Nytt", systemImage: "plus.circle.fill")
-                                .font(.callout.bold())
-                                .foregroundStyle(Palette.gold)
-                        }
-                    }
-                    if viewModel.missions.isEmpty {
-                        Text("Inga uppdrag än. Skapa det första!")
-                            .font(.footnote)
-                            .foregroundStyle(Palette.muted)
-                    } else {
-                        ForEach(viewModel.missions) { mission in
-                            HStack {
-                                Text(mission.title).font(.callout).foregroundStyle(Palette.text)
-                                Spacer()
-                                Pill("\(mission.rewardMynt) 🪙", tint: Palette.gold)
-                            }
-                            .padding(.vertical, 4)
-                        }
-                    }
-                }
-            }
+            TodaysMissionsSection(
+                children: viewModel.children,
+                missions: viewModel.missions,
+                parentMissionsVM: viewModel.parentMissionsVM,
+                onNewMission: { showCreateMission = true }
+            )
 
             Kort {
                 VStack(alignment: .leading, spacing: 8) {
@@ -340,13 +322,98 @@ struct HomeView: View {
     private func makeCreateMission() -> CreateMissionViewModel {
         let vm = CreateMissionViewModel(
             familyId: viewModel.familyId,
-            multiplier: viewModel.profileConfig?.uppdragMultiplier ?? 1.0
+            multiplier: viewModel.profileConfig?.uppdragMultiplier ?? 1.0,
+            children: viewModel.children
         )
         vm.onCreated = { mission in
             viewModel.missions.insert(mission, at: 0)
             showCreateMission = false
         }
         return vm
+    }
+}
+
+private struct TodaysMissionsSection: View {
+    let children: [ChildProfile]
+    let missions: [Mission]
+    let parentMissionsVM: ParentMissionsViewModel
+    let onNewMission: () -> Void
+
+    var body: some View {
+        Kort {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Dagens aktiva uppdrag").font(.headline).foregroundStyle(Palette.text)
+                    Spacer()
+                    Button(action: onNewMission) {
+                        Label("Nytt", systemImage: "plus.circle.fill")
+                            .font(.callout.bold())
+                            .foregroundStyle(Palette.gold)
+                    }
+                }
+
+                if children.isEmpty || missions.isEmpty {
+                    Text("Inga uppdrag än. Skapa det första!")
+                        .font(.footnote)
+                        .foregroundStyle(Palette.muted)
+                } else {
+                    ForEach(children) { child in
+                        let rows = parentMissionsVM.rows(for: child)
+                        if !rows.isEmpty {
+                            childSection(child: child, rows: rows)
+                        }
+                    }
+                    let unassignedRows = parentMissionsVM.broadcastRows()
+                    if !unassignedRows.isEmpty && children.count > 1 {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Alla barn").font(.subheadline.bold()).foregroundStyle(Palette.muted)
+                            ForEach(unassignedRows) { row in
+                                missionLine(row: row)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func childSection(child: ChildProfile, rows: [ParentMissionRow]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 6) {
+                Text(child.avatarEmoji)
+                Text(child.nickname).font(.subheadline.bold()).foregroundStyle(Palette.text)
+            }
+            ForEach(rows) { row in
+                missionLine(row: row)
+            }
+        }
+    }
+
+    private func missionLine(row: ParentMissionRow) -> some View {
+        HStack(spacing: 8) {
+            Text(row.mission.title)
+                .font(.callout)
+                .foregroundStyle(Palette.text)
+                .lineLimit(1)
+            Spacer()
+            Pill("\(row.mission.rewardMynt) 🪙", tint: Palette.gold)
+            statusPill(for: row.status)
+        }
+        .padding(.leading, 8)
+    }
+
+    @ViewBuilder
+    private func statusPill(for status: SubmissionStatus?) -> some View {
+        switch status {
+        case .none:
+            Pill("Ej startad", tint: Palette.muted)
+        case .pending:
+            Pill("Inskickad", icon: "⏳", tint: Palette.purple)
+        case .approved:
+            Pill("Godkänd", icon: "✅", tint: Palette.green)
+        case .rejected:
+            Pill("Nekad", tint: Palette.red)
+        }
     }
 }
 

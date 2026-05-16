@@ -127,6 +127,7 @@ struct Mission: Codable, Identifiable, Hashable {
     let rewardMynt: Int
     let recurrence: Recurrence
     let active: Bool
+    let assignedChildId: UUID?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -136,6 +137,7 @@ struct Mission: Codable, Identifiable, Hashable {
         case rewardMynt = "reward_mynt"
         case recurrence
         case active
+        case assignedChildId = "assigned_child_id"
     }
 }
 

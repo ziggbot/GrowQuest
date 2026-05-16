@@ -5,7 +5,8 @@ import Supabase
 @MainActor
 final class ChildMissionsViewModel {
     var missions: [Mission] = []
-    var pendingForToday: Set<UUID> = []   // mission_id values already submitted today
+    var pendingForToday: Set<UUID> = []
+    var approvedMissionIds: Set<UUID> = []   // missions hidden because already approved
     var isLoading: Bool = false
     var errorMessage: String?
     var lastSuccess: String?
@@ -32,24 +33,54 @@ final class ChildMissionsViewModel {
                 .execute()
                 .value
 
-            missions = allMissions
-
-            // Find today's submissions (any status) so we don't allow double-submit on dailies.
             let cal = Calendar(identifier: .iso8601)
-            let startOfToday = cal.startOfDay(for: Date())
+            let now = Date()
+            let startOfToday = cal.startOfDay(for: now)
+            let startOfWeek = cal.dateInterval(of: .weekOfYear, for: now)?.start ?? startOfToday
             let iso = ISO8601DateFormatter()
             iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-            let startStr = iso.string(from: startOfToday)
 
-            let todays: [MissionSubmission] = try await supabase
+            let allChildSubs: [MissionSubmission] = try await supabase
                 .from("mission_submissions")
                 .select()
                 .eq("child_id", value: child.id)
-                .gte("submitted_at", value: startStr)
                 .execute()
                 .value
 
-            pendingForToday = Set(todays.map(\.missionId))
+            var pendingToday: Set<UUID> = []
+            var approved: Set<UUID> = []
+
+            for sub in allChildSubs {
+                if sub.status == .approved {
+                    let mission = allMissions.first { $0.id == sub.missionId }
+                    switch mission?.recurrence {
+                    case .once:
+                        approved.insert(sub.missionId)
+                    case .daily:
+                        if let reviewed = sub.reviewedAt, reviewed >= startOfToday {
+                            approved.insert(sub.missionId)
+                        }
+                    case .weekly:
+                        if let reviewed = sub.reviewedAt, reviewed >= startOfWeek {
+                            approved.insert(sub.missionId)
+                        }
+                    case .none:
+                        break
+                    }
+                }
+                if sub.submittedAt >= startOfToday {
+                    pendingToday.insert(sub.missionId)
+                }
+            }
+
+            // Keep only missions visible to this child
+            missions = allMissions.filter { m in
+                guard m.assignedChildId == nil || m.assignedChildId == child.id else { return false }
+                return !approved.contains(m.id)
+            }
+
+            pendingForToday = pendingToday
+            approvedMissionIds = approved
         } catch {
             errorMessage = (error as NSError).localizedDescription
         }
@@ -85,6 +116,7 @@ final class ChildMissionsViewModel {
 
 struct ChildMissionListView: View {
     @State var viewModel: ChildMissionsViewModel
+    @State private var showHistory = false
 
     var body: some View {
         ScrollView {
@@ -113,12 +145,26 @@ struct ChildMissionListView: View {
                 if let e = viewModel.errorMessage {
                     Text(e).foregroundStyle(Palette.red).font(.footnote)
                 }
+
+                Button {
+                    showHistory = true
+                } label: {
+                    Label("Historik", systemImage: "clock.arrow.circlepath")
+                        .font(.callout)
+                        .foregroundStyle(Palette.muted)
+                }
+                .padding(.top, 4)
             }
             .padding(16)
         }
         .background(Palette.bg.ignoresSafeArea())
         .task { await viewModel.reload() }
         .refreshable { await viewModel.reload() }
+        .sheet(isPresented: $showHistory) {
+            MissionHistoryView(
+                viewModel: MissionHistoryViewModel(familyId: viewModel.familyId, child: viewModel.child)
+            )
+        }
     }
 
     private var header: some View {

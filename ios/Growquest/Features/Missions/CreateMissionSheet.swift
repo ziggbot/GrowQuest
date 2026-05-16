@@ -9,16 +9,19 @@ final class CreateMissionViewModel {
     var rewardMynt: Int = 60
     var recurrence: Recurrence = .daily
     var pickedTemplate: MissionTemplate?
+    var selectedChildId: UUID? = nil
     var isSaving: Bool = false
     var errorMessage: String?
 
     let familyId: UUID
     let multiplier: Double
+    let children: [ChildProfile]
     var onCreated: (Mission) -> Void = { _ in }
 
-    init(familyId: UUID, multiplier: Double) {
+    init(familyId: UUID, multiplier: Double, children: [ChildProfile]) {
         self.familyId = familyId
         self.multiplier = multiplier
+        self.children = children
     }
 
     func applyTemplate(_ t: MissionTemplate) {
@@ -49,6 +52,7 @@ final class CreateMissionViewModel {
             let recurrence: String
             let active: Bool
             let createdBy: UUID
+            let assignedChildId: UUID?
 
             enum CodingKeys: String, CodingKey {
                 case familyId = "family_id"
@@ -58,6 +62,7 @@ final class CreateMissionViewModel {
                 case recurrence
                 case active
                 case createdBy = "created_by"
+                case assignedChildId = "assigned_child_id"
             }
         }
 
@@ -73,7 +78,8 @@ final class CreateMissionViewModel {
                 rewardMynt: rewardMynt,
                 recurrence: recurrence.rawValue,
                 active: true,
-                createdBy: userId
+                createdBy: userId,
+                assignedChildId: selectedChildId
             )
 
             let inserted: Mission = try await supabase
@@ -128,6 +134,19 @@ struct CreateMissionSheet: View {
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    Kort {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("För vem?").font(.headline).foregroundStyle(Palette.text)
+                            Picker("För vem?", selection: $viewModel.selectedChildId) {
+                                Text("Alla barn").tag(UUID?.none)
+                                ForEach(viewModel.children) { child in
+                                    Text("\(child.avatarEmoji) \(child.nickname)").tag(UUID?.some(child.id))
+                                }
+                            }
+                            .pickerStyle(.segmented)
                         }
                     }
 
