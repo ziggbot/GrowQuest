@@ -9,6 +9,7 @@ export function Kort({ children, style }: { children: ReactNode; style?: CSSProp
         border: `1px solid ${C.border}`,
         borderRadius: 18,
         padding: 16,
+        boxSizing: "border-box",
         ...style
       }}
     >

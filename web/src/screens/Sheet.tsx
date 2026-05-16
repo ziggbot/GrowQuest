@@ -39,6 +39,7 @@ export function Sheet({
           padding: 16,
           paddingBottom: "max(env(safe-area-inset-bottom), 16px)",
           overflowY: "auto",
+          boxSizing: "border-box",
           boxShadow: "0 -10px 40px rgba(0,0,0,0.4)"
         }}
       >

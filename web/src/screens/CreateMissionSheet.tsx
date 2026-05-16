@@ -73,28 +73,42 @@ export function CreateMissionSheet({
       <div style={{ display: "grid", gap: 14 }}>
         <Kort>
           <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>Mall (valfritt)</label>
-          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
             {MISSION_TEMPLATES.map((t) => {
               const isOn = pickedTemplate === t.id;
               return (
                 <button
                   key={t.id}
                   onClick={() => applyTemplate(t)}
+                  title={t.title}
                   style={{
-                    minWidth: 96,
-                    padding: 10,
+                    padding: "8px 4px",
                     background: isOn ? `${C.gold}22` : C.surfaceHov,
                     border: `${isOn ? 2 : 1}px solid ${isOn ? C.gold : C.border}`,
-                    borderRadius: 12,
+                    borderRadius: 10,
                     cursor: "pointer",
                     color: C.text,
                     display: "grid",
-                    gap: 4,
-                    placeItems: "center"
+                    gap: 2,
+                    placeItems: "center",
+                    minWidth: 0,
+                    overflow: "hidden"
                   }}
                 >
-                  <span style={{ fontSize: 24 }}>{t.icon}</span>
-                  <span style={{ fontSize: 11 }}>{t.title}</span>
+                  <span style={{ fontSize: 22, lineHeight: 1 }}>{t.icon}</span>
+                  <span
+                    style={{
+                      fontSize: 10,
+                      lineHeight: 1.1,
+                      width: "100%",
+                      textAlign: "center",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis"
+                    }}
+                  >
+                    {t.title}
+                  </span>
                 </button>
               );
             })}
@@ -130,18 +144,20 @@ export function CreateMissionSheet({
             </div>
             <div>
               <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 4 }}>Återkomst</label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {(Object.keys(RECURRENCE_LABELS) as Recurrence[]).map((r) => (
                   <button
                     key={r}
                     onClick={() => setRecurrence(r)}
                     style={{
-                      padding: 10,
+                      padding: "6px 12px",
                       background: recurrence === r ? `${C.gold}22` : C.surfaceHov,
                       border: `${recurrence === r ? 2 : 1}px solid ${recurrence === r ? C.gold : C.border}`,
-                      borderRadius: 10,
+                      borderRadius: 999,
                       cursor: "pointer",
-                      color: C.text
+                      color: recurrence === r ? C.gold : C.text,
+                      fontSize: 13,
+                      fontWeight: 500
                     }}
                   >
                     {RECURRENCE_LABELS[r]}
