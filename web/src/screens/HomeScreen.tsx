@@ -87,6 +87,22 @@ export function HomeScreen() {
     void reload();
   }, [familyId]);
 
+  // Schedule a refresh at midnight so the date header and "today's missions"
+  // roll over without the user having to reload.
+  const [todayKey, setTodayKey] = useState(() => new Date().toDateString());
+  useEffect(() => {
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setDate(now.getDate() + 1);
+    nextMidnight.setHours(0, 0, 0, 0);
+    const ms = nextMidnight.getTime() - now.getTime() + 200;
+    const timer = setTimeout(() => {
+      setTodayKey(new Date().toDateString());
+      void reload();
+    }, ms);
+    return () => clearTimeout(timer);
+  }, [todayKey, familyId]);
+
   const profileEntry = useMemo(
     () => (profile ? PROFILER.find((p) => p.id === profile.profile_id) : undefined),
     [profile]
@@ -207,9 +223,9 @@ export function HomeScreen() {
             multiplier={profileEntry.uppdrag_multiplier}
             children={children}
             onClose={() => setShowCreateMission(false)}
-            onCreated={(m) => {
-              setMissions((ms) => [m, ...ms]);
+            onCreated={() => {
               setShowCreateMission(false);
+              void reload();
             }}
           />
         )}
@@ -347,7 +363,10 @@ function ParentDashboard({
 
       <Kort>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
-          <h3 style={{ margin: 0, flex: 1 }}>Dagens aktiva uppdrag</h3>
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: 0 }}>Dagens aktiva uppdrag</h3>
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>{formatTodayShort()}</div>
+          </div>
           <button
             onClick={onCreateMission}
             style={{ background: "none", border: "none", color: C.gold, fontWeight: 700, cursor: "pointer", fontSize: 14 }}
@@ -371,28 +390,6 @@ function ParentDashboard({
                 />
               );
             })}
-            {(() => {
-              const broadcast = missions.filter((m) => m.assigned_child_id === null);
-              if (broadcast.length === 0) return null;
-              return (
-                <div style={{ display: "grid", gap: 6 }}>
-                  <div
-                    style={{
-                      color: C.muted,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      letterSpacing: 0.3,
-                      textTransform: "uppercase"
-                    }}
-                  >
-                    Alla barn
-                  </div>
-                  {broadcast.map((m) => (
-                    <MissionLine key={m.id} mission={m} status={null} />
-                  ))}
-                </div>
-              );
-            })()}
           </div>
         )}
       </Kort>
@@ -482,4 +479,17 @@ function StatusPill({ status }: { status: SubmissionStatus | null }) {
   if (status === "pending") return <Pill text="Inskickad" icon="⏳" tint={C.purple} />;
   if (status === "approved") return <Pill text="Godkänd" icon="✅" tint={C.green} />;
   return <Pill text="Nekad" tint={C.red} />;
+}
+
+const SV_MONTHS_SHORT = [
+  "jan", "feb", "mar", "apr", "maj", "jun",
+  "jul", "aug", "sep", "okt", "nov", "dec"
+];
+
+function formatTodayShort(): string {
+  const now = new Date();
+  const day = now.getDate();
+  const month = SV_MONTHS_SHORT[now.getMonth()];
+  const year = String(now.getFullYear()).slice(-2);
+  return `${day} ${month}-${year}`;
 }

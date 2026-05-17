@@ -32,6 +32,16 @@ export interface ChildProfile {
 
 export type Recurrence = "once" | "daily" | "weekly";
 
+export interface MissionTemplate {
+  id: string;
+  family_id: string;
+  title: string;
+  description: string | null;
+  reward_mynt: number;
+  recurrence: Recurrence;
+  created_at: string;
+}
+
 export interface Mission {
   id: string;
   family_id: string;
