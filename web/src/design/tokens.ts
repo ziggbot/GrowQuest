@@ -1,41 +1,18 @@
+// Unified light theme — same palette for parent and child screens.
+// Card surfaces stay white-ish so content reads cleanly on top of the
+// jungle background. Text is navy, accents are warm gold + cyan.
 export const C = {
-  bg: "#0d1117",
-  surface: "rgba(255,255,255,0.07)",
-  surfaceHov: "rgba(255,255,255,0.11)",
-  border: "rgba(255,255,255,0.12)",
-  gold: "#f5c842",
-  goldFade: "rgba(245,200,66,0.15)",
-  green: "#3ddc84",
-  greenFade: "rgba(61,220,132,0.15)",
-  red: "#ff6b6b",
-  redFade: "rgba(255,107,107,0.15)",
-  purple: "#a78bfa",
-  purpleFade: "rgba(167,139,250,0.15)",
-  blue: "#60a5fa",
-  blueFade: "rgba(96,165,250,0.15)",
-  text: "#f0f0f0",
-  muted: "rgba(240,240,240,0.45)"
-} as const;
-
-// Child theme — Pokémon Go-inspired: bright sky, warm cream, soft cyan,
-// white cards with cozy shadows, deep navy text.
-export const CK = {
-  bgGradTop: "#cfe9f7",
-  bgGradMid: "#fde7c4",
-  bgGradBot: "#fff4dc",
+  // Solid fallback (used briefly while jungle-bg loads or if it 404s).
+  bg: "#fff4dc",
+  // Card surfaces — opaque white with soft border + shadow.
   surface: "#ffffff",
-  surfaceSoft: "#fff8e8",
+  surfaceHov: "#fff8e8",
   surfaceMuted: "#f3edde",
-  border: "rgba(36,58,82,0.08)",
+  border: "rgba(36,58,82,0.10)",
   borderStrong: "rgba(36,58,82,0.18)",
   shadow: "0 6px 18px rgba(140,100,60,0.12)",
   shadowSoft: "0 2px 8px rgba(140,100,60,0.08)",
-  text: "#243a52",
-  textSoft: "#3b5673",
-  muted: "#8aa0b8",
-  accent: "#1ec0d6",
-  accentDeep: "#0fa4b8",
-  accentFade: "rgba(30,192,214,0.14)",
+  // Brand accents
   gold: "#f5b400",
   goldFade: "rgba(245,180,0,0.16)",
   green: "#2bb673",
@@ -43,5 +20,45 @@ export const CK = {
   red: "#ff6464",
   redFade: "rgba(255,100,100,0.14)",
   purple: "#7a6bd6",
-  purpleFade: "rgba(122,107,214,0.14)"
+  purpleFade: "rgba(122,107,214,0.14)",
+  blue: "#1ec0d6",
+  blueFade: "rgba(30,192,214,0.14)",
+  // Typography
+  text: "#243a52",
+  textSoft: "#3b5673",
+  muted: "#5d7491"
+} as const;
+
+// CK kept as an alias of C for backward compatibility — child screens
+// already import from CK. Eventually we can consolidate, but for now
+// every export has a matching key.
+export const CK = {
+  // Light gradient stack (still used by some preview frames)
+  bgGradTop: "#cfe9f7",
+  bgGradMid: "#fde7c4",
+  bgGradBot: "#fff4dc",
+  // Surfaces
+  surface: C.surface,
+  surfaceSoft: C.surfaceHov,
+  surfaceMuted: C.surfaceMuted,
+  border: C.border,
+  borderStrong: C.borderStrong,
+  shadow: C.shadow,
+  shadowSoft: C.shadowSoft,
+  // Typography
+  text: C.text,
+  textSoft: C.textSoft,
+  muted: C.muted,
+  // Accents
+  accent: "#1ec0d6",
+  accentDeep: "#0fa4b8",
+  accentFade: "rgba(30,192,214,0.14)",
+  gold: C.gold,
+  goldFade: C.goldFade,
+  green: C.green,
+  greenFade: C.greenFade,
+  red: C.red,
+  redFade: C.redFade,
+  purple: C.purple,
+  purpleFade: C.purpleFade
 } as const;

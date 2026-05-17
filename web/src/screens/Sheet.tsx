@@ -32,7 +32,7 @@ export function Sheet({
           width: "100%",
           maxWidth: 480,
           maxHeight: "92vh",
-          background: C.bg,
+          background: `linear-gradient(180deg, #cfe9f7 0%, #fde7c4 55%, #fff4dc 100%)`,
           borderTop: `1px solid ${C.border}`,
           borderTopLeftRadius: 22,
           borderTopRightRadius: 22,
@@ -40,7 +40,8 @@ export function Sheet({
           paddingBottom: "max(env(safe-area-inset-bottom), 16px)",
           overflowY: "auto",
           boxSizing: "border-box",
-          boxShadow: "0 -10px 40px rgba(0,0,0,0.4)"
+          boxShadow: "0 -10px 40px rgba(36,58,82,0.25)",
+          color: C.text
         }}
       >
         <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>

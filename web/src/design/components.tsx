@@ -1,6 +1,36 @@
 import type { CSSProperties, ReactNode } from "react";
 import { C, CK } from "./tokens";
 
+// Jungle background — fixed, covers the viewport, with a soft cream overlay
+// to ensure text/cards stay readable on top. Drop the source image at
+// web/public/jungle-bg.png (PNG with the painted jungle scene).
+const JUNGLE_BG_STYLE: CSSProperties = {
+  minHeight: "100dvh",
+  background: `
+    linear-gradient(180deg, rgba(207,233,247,0.30) 0%, rgba(255,244,220,0.35) 60%, rgba(255,244,220,0.55) 100%),
+    url('/jungle-bg.png') center/cover no-repeat fixed,
+    ${C.bg}
+  `,
+  padding: "max(env(safe-area-inset-top), 12px) 12px max(env(safe-area-inset-bottom), 12px)",
+  boxSizing: "border-box",
+  color: C.text
+};
+
+export function JungleBackground({ children }: { children: ReactNode }) {
+  return <div style={JUNGLE_BG_STYLE}>{children}</div>;
+}
+
+// Backwards-compatible aliases — every screen that imports either of these
+// now gets the unified jungle theme automatically.
+export function ScreenContainer({ children }: { children: ReactNode }) {
+  return <JungleBackground>{children}</JungleBackground>;
+}
+
+export function ChildScreenContainer({ children }: { children: ReactNode }) {
+  return <JungleBackground>{children}</JungleBackground>;
+}
+
+// Card — white surface, soft border + shadow. Reads cleanly on the bg.
 export function Kort({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
     <div
@@ -10,6 +40,8 @@ export function Kort({ children, style }: { children: ReactNode; style?: CSSProp
         borderRadius: 18,
         padding: 16,
         boxSizing: "border-box",
+        boxShadow: C.shadow,
+        color: C.text,
         ...style
       }}
     >
@@ -33,9 +65,9 @@ export function Knapp({
   disabled?: boolean;
   full?: boolean;
 }) {
-  const bg = style === "primary" ? C.gold : style === "danger" ? C.red : "transparent";
-  const fg = style === "primary" ? "#0d1117" : style === "danger" ? "#fff" : C.text;
-  const border = style === "secondary" ? `1px solid ${C.border}` : "none";
+  const bg = style === "primary" ? C.gold : style === "danger" ? C.red : C.surface;
+  const fg = style === "secondary" ? C.text : "#ffffff";
+  const border = style === "secondary" ? `1px solid ${C.borderStrong}` : "none";
   return (
     <button
       onClick={onClick}
@@ -47,10 +79,11 @@ export function Knapp({
         background: bg,
         color: fg,
         border,
-        fontWeight: 600,
+        fontWeight: 700,
         fontSize: 15,
         cursor: disabled ? "not-allowed" : "pointer",
         opacity: disabled ? 0.5 : 1,
+        boxShadow: disabled ? "none" : C.shadowSoft,
         WebkitAppearance: "none"
       }}
     >
@@ -76,11 +109,11 @@ export function Pill({
         gap: 6,
         padding: "4px 10px",
         borderRadius: 999,
-        background: `${tint}1f`,
+        background: `${tint}22`,
         border: `1px solid ${tint}55`,
         color: tint,
         fontSize: 13,
-        fontWeight: 600,
+        fontWeight: 700,
         whiteSpace: "nowrap"
       }}
     >
@@ -110,37 +143,8 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
-export function ScreenContainer({ children }: { children: ReactNode }) {
-  return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        padding: "max(env(safe-area-inset-top), 12px) 12px max(env(safe-area-inset-bottom), 12px)",
-        boxSizing: "border-box"
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
-// Child-themed container with warm sky→cream gradient (Pokémon Go inspired).
-export function ChildScreenContainer({ children }: { children: ReactNode }) {
-  return (
-    <div
-      style={{
-        minHeight: "100dvh",
-        background: `linear-gradient(180deg, ${CK.bgGradTop} 0%, ${CK.bgGradMid} 45%, ${CK.bgGradBot} 100%)`,
-        padding: "max(env(safe-area-inset-top), 12px) 12px max(env(safe-area-inset-bottom), 12px)",
-        boxSizing: "border-box",
-        color: CK.text
-      }}
-    >
-      {children}
-    </div>
-  );
-}
-
+// Child-themed variants kept as aliases now that the theme is unified —
+// existing imports (KortKid, KnappKid, PillKid) still resolve.
 export function KortKid({ children, style }: { children: ReactNode; style?: CSSProperties }) {
   return (
     <div

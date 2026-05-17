@@ -278,19 +278,9 @@ export function ChildView({
     </div>
   );
 
-  // When the parent previews the child's perspective from the parent dashboard,
-  // wrap the bright child UI in a soft sky→cream frame so the theme contrast is
-  // intentional rather than broken-looking against the dark parent shell.
   if (isParentPreview) {
     return (
-      <div
-        style={{
-          background: `linear-gradient(180deg, ${CK.bgGradTop} 0%, ${CK.bgGradMid} 55%, ${CK.bgGradBot} 100%)`,
-          borderRadius: 22,
-          padding: 14,
-          boxShadow: CK.shadow
-        }}
-      >
+      <div>
         <div
           style={{
             fontSize: 10,
