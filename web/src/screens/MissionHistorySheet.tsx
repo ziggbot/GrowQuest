@@ -43,31 +43,32 @@ export function MissionHistorySheet({
       try {
         const startOfToday = new Date();
         startOfToday.setHours(0, 0, 0, 0);
+        const lookback = new Date(startOfToday);
+        lookback.setDate(lookback.getDate() - 14);
 
+        // Fetch all submissions (any status) so pending counts as "not missed"
+        // and we can still display the approved/rejected entries.
         const [subsRes, missionsRes] = await Promise.all([
           supabase
             .from("mission_submissions")
             .select("id, mission_id, status, submitted_at, reviewed_at, missions(title, reward_mynt)")
             .eq("family_id", familyId)
             .eq("child_id", child.id)
-            .in("status", ["approved", "rejected"])
             .order("submitted_at", { ascending: false })
-            .limit(100),
+            .limit(200),
           supabase
             .from("missions")
             .select("*")
             .eq("family_id", familyId)
-            .eq("recurrence", "once")
         ]);
         if (subsRes.error) throw subsRes.error;
         if (missionsRes.error) throw missionsRes.error;
 
         const subs = (subsRes.data ?? []) as unknown as SubmissionRow[];
-        const onceMissions = (missionsRes.data ?? []) as Mission[];
+        const missions = (missionsRes.data ?? []) as Mission[];
 
-        const submitted = new Set(subs.map((s) => s.mission_id));
         const list: HistoryEntry[] = subs
-          .filter((r) => r.missions)
+          .filter((r) => r.missions && (r.status === "approved" || r.status === "rejected"))
           .map((r) => ({
             id: r.id,
             status: r.status,
@@ -76,20 +77,77 @@ export function MissionHistorySheet({
             reward_mynt: r.missions!.reward_mynt
           }));
 
-        // Derive "ej utfört" entries for once-missions that were for an earlier
-        // day, addressed to this child (or unassigned), and never resulted in
-        // any submission from this child.
-        for (const m of onceMissions) {
+        // Group submission timestamps by mission for fast period lookups.
+        const subsByMission = new Map<string, Date[]>();
+        for (const s of subs) {
+          if (!subsByMission.has(s.mission_id)) subsByMission.set(s.mission_id, []);
+          subsByMission.get(s.mission_id)!.push(new Date(s.submitted_at));
+        }
+        const hasSubmissionInRange = (missionId: string, from: Date, toExcl: Date) =>
+          (subsByMission.get(missionId) ?? []).some((d) => d >= from && d < toExcl);
+
+        const startOfISOWeek = (d: Date) => {
+          const r = new Date(d);
+          r.setHours(0, 0, 0, 0);
+          const dow = (r.getDay() + 6) % 7; // Monday = 0
+          r.setDate(r.getDate() - dow);
+          return r;
+        };
+
+        const startOfThisWeek = startOfISOWeek(new Date());
+
+        for (const m of missions) {
           if (m.assigned_child_id !== null && m.assigned_child_id !== child.id) continue;
-          if (submitted.has(m.id)) continue;
-          if (new Date(m.created_at) >= startOfToday) continue;
-          list.push({
-            id: `missed-${m.id}`,
-            status: "missed",
-            date: m.created_at,
-            title: m.title,
-            reward_mynt: m.reward_mynt
-          });
+          const createdAt = new Date(m.created_at);
+          const createdDay = new Date(createdAt);
+          createdDay.setHours(0, 0, 0, 0);
+
+          if (m.recurrence === "once") {
+            if (createdDay >= startOfToday) continue;
+            if (subsByMission.has(m.id)) continue;
+            list.push({
+              id: `missed-once-${m.id}`,
+              status: "missed",
+              date: m.created_at,
+              title: m.title,
+              reward_mynt: m.reward_mynt
+            });
+          } else if (m.recurrence === "daily") {
+            const from = createdDay > lookback ? createdDay : lookback;
+            const cursor = new Date(from);
+            while (cursor < startOfToday) {
+              const next = new Date(cursor);
+              next.setDate(next.getDate() + 1);
+              if (!hasSubmissionInRange(m.id, cursor, next)) {
+                list.push({
+                  id: `missed-daily-${m.id}-${cursor.toISOString().slice(0, 10)}`,
+                  status: "missed",
+                  date: cursor.toISOString(),
+                  title: m.title,
+                  reward_mynt: m.reward_mynt
+                });
+              }
+              cursor.setDate(cursor.getDate() + 1);
+            }
+          } else if (m.recurrence === "weekly") {
+            const createdWeek = startOfISOWeek(createdAt);
+            const from = createdWeek > lookback ? createdWeek : startOfISOWeek(lookback);
+            const cursor = new Date(from);
+            while (cursor < startOfThisWeek) {
+              const next = new Date(cursor);
+              next.setDate(next.getDate() + 7);
+              if (!hasSubmissionInRange(m.id, cursor, next)) {
+                list.push({
+                  id: `missed-weekly-${m.id}-${cursor.toISOString().slice(0, 10)}`,
+                  status: "missed",
+                  date: cursor.toISOString(),
+                  title: m.title,
+                  reward_mynt: m.reward_mynt
+                });
+              }
+              cursor.setDate(cursor.getDate() + 7);
+            }
+          }
         }
 
         list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
