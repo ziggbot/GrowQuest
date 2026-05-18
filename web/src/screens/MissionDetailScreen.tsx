@@ -70,13 +70,33 @@ export function MissionDetailScreen() {
     try {
       const photoData = photoFile ? await compressImageToDataUrl(photoFile) : null;
       const trimmedNote = note.trim();
-      const { error } = await supabase.from("mission_submissions").insert({
+      const baseRow = {
         family_id: familyId,
         mission_id: mission.id,
-        child_id: childId,
-        photo_data: photoData,
-        child_note: trimmedNote.length > 0 ? trimmedNote : null
-      });
+        child_id: childId
+      };
+      const fullRow: Record<string, unknown> = { ...baseRow };
+      if (photoData) fullRow.photo_data = photoData;
+      if (trimmedNote.length > 0) fullRow.child_note = trimmedNote;
+
+      let { error } = await supabase.from("mission_submissions").insert(fullRow);
+
+      // Graceful fallback: if the new columns haven't landed on the backend
+      // yet, retry with a plain submission so the mission is still recorded.
+      if (
+        error &&
+        (error.message.includes("child_note") || error.message.includes("photo_data")) &&
+        (photoData || trimmedNote.length > 0)
+      ) {
+        const retry = await supabase.from("mission_submissions").insert(baseRow);
+        if (retry.error) throw retry.error;
+        setSubmitted(true);
+        setErr(
+          "Uppdraget är inskickat. Foto och kommentar kunde inte sparas — backend uppdateras inom kort, prova nästa gång."
+        );
+        return;
+      }
+
       if (error) throw error;
       setSubmitted(true);
     } catch (e) {
