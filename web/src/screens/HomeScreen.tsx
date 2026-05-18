@@ -233,6 +233,7 @@ export function HomeScreen() {
             userId={user!.id}
             multiplier={profileEntry.uppdrag_multiplier}
             children={children}
+            missions={missions}
             onClose={() => setShowCreateMission(false)}
             onCreated={() => {
               setShowCreateMission(false);

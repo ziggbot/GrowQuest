@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { ChildProfile, MissionTemplate as DbMissionTemplate, Recurrence } from "../lib/types";
+import type { ChildProfile, Mission, MissionTemplate as DbMissionTemplate, Recurrence } from "../lib/types";
 import {
   MISSION_TEMPLATES,
   estimateMissionReward,
   type MissionTemplate as BuiltInTemplate
 } from "../lib/templates";
 import { C } from "../design/tokens";
-import { Kort, Knapp, Input } from "../design/components";
+import { Kort, Knapp, Pill, Input } from "../design/components";
 import { Sheet } from "./Sheet";
 
 const RECURRENCE_LABELS: Record<Recurrence, string> = {
@@ -16,11 +16,24 @@ const RECURRENCE_LABELS: Record<Recurrence, string> = {
   weekly: "Varje vecka"
 };
 
+const RECURRENCE_TINTS: Record<Recurrence, string> = {
+  once: C.purple,
+  daily: C.green,
+  weekly: C.gold
+};
+
+const RECURRENCE_ICONS: Record<Recurrence, string> = {
+  once: "✨",
+  daily: "🔄",
+  weekly: "📅"
+};
+
 export function CreateMissionSheet({
   familyId,
   userId,
   multiplier,
   children,
+  missions,
   onClose,
   onCreated
 }: {
@@ -28,6 +41,7 @@ export function CreateMissionSheet({
   userId: string;
   multiplier: number;
   children: ChildProfile[];
+  missions: Mission[];
   onClose: () => void;
   onCreated: () => void;
 }) {
@@ -58,6 +72,19 @@ export function CreateMissionSheet({
     personalTemplates.forEach((t) => set.add(t.title.trim().toLowerCase()));
     return set;
   }, [personalTemplates]);
+
+  // Missions already targeted at the selected child (or broadcast → all).
+  const assignedToCurrent = useMemo(() => {
+    if (assignedChildId === null) return [];
+    return missions.filter(
+      (m) => m.assigned_child_id === assignedChildId || m.assigned_child_id === null
+    );
+  }, [missions, assignedChildId]);
+
+  const selectedChild = useMemo(
+    () => (assignedChildId ? children.find((c) => c.id === assignedChildId) ?? null : null),
+    [children, assignedChildId]
+  );
 
   function applyBuiltIn(t: BuiltInTemplate) {
     setPickedKey(`builtin:${t.id}`);
@@ -175,6 +202,55 @@ export function CreateMissionSheet({
             ))}
           </div>
         </Kort>
+
+        {selectedChild && (
+          <Kort>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 8, gap: 6 }}>
+              <span style={{ fontSize: 18 }}>{selectedChild.avatar_emoji}</span>
+              <label style={{ color: C.muted, fontSize: 12, flex: 1 }}>
+                {selectedChild.nickname}s uppdrag ({assignedToCurrent.length})
+              </label>
+            </div>
+            {assignedToCurrent.length === 0 ? (
+              <p style={{ color: C.muted, fontSize: 12, margin: 0 }}>
+                Inga uppdrag tilldelade än.
+              </p>
+            ) : (
+              <div style={{ display: "grid", gap: 6 }}>
+                {assignedToCurrent.map((m) => (
+                  <div
+                    key={m.id}
+                    style={{
+                      display: "grid",
+                      gridTemplateColumns: "minmax(0, 1fr) auto auto",
+                      alignItems: "center",
+                      gap: 8,
+                      padding: "6px 4px"
+                    }}
+                  >
+                    <span
+                      style={{
+                        color: C.text,
+                        fontSize: 13,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap"
+                      }}
+                    >
+                      {m.title}
+                    </span>
+                    <Pill
+                      text={RECURRENCE_LABELS[m.recurrence]}
+                      icon={RECURRENCE_ICONS[m.recurrence]}
+                      tint={RECURRENCE_TINTS[m.recurrence]}
+                    />
+                    <Pill text={`${m.reward_mynt} 🪙`} tint={C.gold} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </Kort>
+        )}
 
         <Kort>
           <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>
