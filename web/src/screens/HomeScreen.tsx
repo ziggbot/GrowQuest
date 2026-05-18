@@ -137,9 +137,7 @@ export function HomeScreen() {
         >
           <div style={{ flex: 1 }}>
             <div style={{ color: C.gold, fontWeight: 800, fontSize: 20 }}>GrowQuest</div>
-            <div style={{ color: C.muted, fontSize: 11 }}>
-              {profileEntry?.namn ?? "—"} · {user?.email}
-            </div>
+            <div style={{ color: C.muted, fontSize: 11 }}>{user?.email}</div>
           </div>
           <button
             onClick={signOut}
@@ -323,7 +321,7 @@ function ParentDashboard({
     <div style={{ display: "grid", gap: 14 }}>
       <Kort>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-          <h3 style={{ margin: 0, flex: 1 }}>Att granska</h3>
+          <h3 style={{ margin: 0, flex: 1 }}>Uppdrag att granska</h3>
           {pendingCount > 0 && <Pill text={String(pendingCount)} tint={C.purple} />}
         </div>
         <button
