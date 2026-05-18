@@ -1,9 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useSession } from "../lib/session";
 import type { Mission } from "../lib/types";
 import { tipsFor } from "../lib/tips";
+import { compressImage } from "../lib/image";
 import { CK } from "../design/tokens";
 import { ChildScreenContainer, KortKid, KnappKid, PillKid } from "../design/components";
 
@@ -17,6 +18,20 @@ export function MissionDetailScreen() {
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(photoFile);
+    setPhotoPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [photoFile]);
 
   useEffect(() => {
     if (!missionId) return;
@@ -53,12 +68,31 @@ export function MissionDetailScreen() {
     setSubmitting(true);
     setErr(null);
     try {
+      const submissionId = crypto.randomUUID();
+      let photoPath: string | null = null;
+      if (photoFile) {
+        const blob = await compressImage(photoFile);
+        photoPath = `${familyId}/${submissionId}.jpg`;
+        const { error: upErr } = await supabase.storage
+          .from("mission-photos")
+          .upload(photoPath, blob, { contentType: "image/jpeg", upsert: false });
+        if (upErr) throw upErr;
+      }
+      const trimmedNote = note.trim();
       const { error } = await supabase.from("mission_submissions").insert({
+        id: submissionId,
         family_id: familyId,
         mission_id: mission.id,
-        child_id: childId
+        child_id: childId,
+        photo_path: photoPath,
+        child_note: trimmedNote.length > 0 ? trimmedNote : null
       });
-      if (error) throw error;
+      if (error) {
+        if (photoPath) {
+          await supabase.storage.from("mission-photos").remove([photoPath]);
+        }
+        throw error;
+      }
       setSubmitted(true);
     } catch (e) {
       setErr((e as Error).message);
@@ -190,6 +224,140 @@ export function MissionDetailScreen() {
         >
           {tips.cheer}
         </p>
+
+        {/* Photo proof + comment */}
+        {!submitted && (
+          <KortKid style={{ marginBottom: 14 }}>
+            <h3
+              style={{
+                margin: "0 0 10px",
+                color: CK.text,
+                fontSize: 13,
+                fontWeight: 800,
+                letterSpacing: 0.4,
+                textTransform: "uppercase"
+              }}
+            >
+              📸 Bevis (frivilligt)
+            </h3>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={(e) => {
+                const f = e.target.files?.[0] ?? null;
+                setPhotoFile(f);
+              }}
+              style={{ display: "none" }}
+            />
+            {photoPreview ? (
+              <div style={{ display: "grid", gap: 10 }}>
+                <img
+                  src={photoPreview}
+                  alt="Bevis"
+                  style={{
+                    width: "100%",
+                    maxHeight: 260,
+                    objectFit: "cover",
+                    borderRadius: 14,
+                    border: `1px solid ${CK.border}`
+                  }}
+                />
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      flex: 1,
+                      background: CK.surface,
+                      border: `1px solid ${CK.border}`,
+                      borderRadius: 12,
+                      padding: "10px 12px",
+                      color: CK.text,
+                      cursor: "pointer",
+                      fontSize: 13,
+                      fontWeight: 700
+                    }}
+                  >
+                    Byt bild
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPhotoFile(null)}
+                    style={{
+                      flex: 1,
+                      background: "transparent",
+                      border: `1px solid ${CK.border}`,
+                      borderRadius: 12,
+                      padding: "10px 12px",
+                      color: CK.muted,
+                      cursor: "pointer",
+                      fontSize: 13,
+                      fontWeight: 700
+                    }}
+                  >
+                    Ta bort
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  width: "100%",
+                  background: CK.accentFade,
+                  border: `1px dashed ${CK.accent}`,
+                  borderRadius: 14,
+                  padding: "18px 12px",
+                  color: CK.text,
+                  cursor: "pointer",
+                  fontSize: 14,
+                  fontWeight: 700,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 8
+                }}
+              >
+                <span style={{ fontSize: 22 }}>📷</span>
+                Lägg till foto
+              </button>
+            )}
+            <label
+              style={{
+                display: "block",
+                color: CK.muted,
+                fontSize: 12,
+                fontWeight: 700,
+                marginTop: 14,
+                marginBottom: 6
+              }}
+            >
+              Kommentar till föräldern (frivilligt)
+            </label>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="T.ex. ”Jag hjälpte även lillebror!”"
+              maxLength={500}
+              rows={3}
+              style={{
+                width: "100%",
+                boxSizing: "border-box",
+                background: CK.surface,
+                border: `1px solid ${CK.border}`,
+                borderRadius: 12,
+                padding: "10px 12px",
+                color: CK.text,
+                fontSize: 14,
+                fontFamily: "inherit",
+                resize: "vertical"
+              }}
+            />
+          </KortKid>
+        )}
 
         {/* Submit */}
         {submitted ? (

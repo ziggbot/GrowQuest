@@ -10,12 +10,14 @@ interface QueueItem {
   submission: MissionSubmission;
   mission: Mission;
   child: ChildProfile;
+  photoUrl: string | null;
 }
 
 export function ApprovalQueueScreen() {
   const { familyId } = useSession();
   const nav = useNavigate();
   const [items, setItems] = useState<QueueItem[]>([]);
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [lastResult, setLastResult] = useState<string | null>(null);
@@ -41,11 +43,25 @@ export function ApprovalQueueScreen() {
 
       const missions = new Map((mRes.data as Mission[]).map((m) => [m.id, m]));
       const children = new Map((cRes.data as ChildProfile[]).map((c) => [c.id, c]));
+      const subs = subsRes.data as MissionSubmission[];
+      const photoSubs = subs.filter((s) => s.photo_path);
+      const photoUrls = new Map<string, string>();
+      if (photoSubs.length > 0) {
+        const { data: signed } = await supabase.storage
+          .from("mission-photos")
+          .createSignedUrls(
+            photoSubs.map((s) => s.photo_path as string),
+            600
+          );
+        (signed ?? []).forEach((row, i) => {
+          if (row.signedUrl) photoUrls.set(photoSubs[i].id, row.signedUrl);
+        });
+      }
       const list: QueueItem[] = [];
-      for (const s of subsRes.data as MissionSubmission[]) {
+      for (const s of subs) {
         const m = missions.get(s.mission_id);
         const c = children.get(s.child_id);
-        if (m && c) list.push({ submission: s, mission: m, child: c });
+        if (m && c) list.push({ submission: s, mission: m, child: c, photoUrl: photoUrls.get(s.id) ?? null });
       }
       setItems(list);
     } catch (e) {
@@ -63,13 +79,18 @@ export function ApprovalQueueScreen() {
     setErr(null);
     setLastResult(null);
     try {
+      const noteText = (notes[item.submission.id] ?? "").trim();
       const { error } = await supabase.rpc("approve_mission", {
         p_submission_id: item.submission.id,
         p_action: action,
-        p_note: null
+        p_note: noteText.length > 0 ? noteText : null
       });
       if (error) throw error;
       setItems((xs) => xs.filter((x) => x.submission.id !== item.submission.id));
+      setNotes((n) => {
+        const { [item.submission.id]: _drop, ...rest } = n;
+        return rest;
+      });
       setLastResult(action === "approve" ? "Godkänt — mynt utdelade." : "Avvisat.");
     } catch (e) {
       setErr((e as Error).message);
@@ -110,6 +131,67 @@ export function ApprovalQueueScreen() {
               {it.mission.description && (
                 <p style={{ color: C.muted, fontSize: 12, margin: "0 0 10px" }}>{it.mission.description}</p>
               )}
+              {it.photoUrl && (
+                <a
+                  href={it.photoUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ display: "block", marginBottom: 10 }}
+                >
+                  <img
+                    src={it.photoUrl}
+                    alt={`Bevis från ${it.child.nickname}`}
+                    style={{
+                      width: "100%",
+                      maxHeight: 280,
+                      objectFit: "cover",
+                      borderRadius: 12,
+                      border: `1px solid ${C.border}`
+                    }}
+                  />
+                </a>
+              )}
+              {it.submission.child_note && (
+                <div
+                  style={{
+                    background: C.surfaceHov,
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 10,
+                    padding: "8px 10px",
+                    color: C.text,
+                    fontSize: 13,
+                    margin: "0 0 10px",
+                    whiteSpace: "pre-wrap"
+                  }}
+                >
+                  <div style={{ color: C.muted, fontSize: 11, fontWeight: 700, marginBottom: 2 }}>
+                    Hälsning från {it.child.nickname}
+                  </div>
+                  {it.submission.child_note}
+                </div>
+              )}
+              <textarea
+                value={notes[it.submission.id] ?? ""}
+                onChange={(e) =>
+                  setNotes((n) => ({ ...n, [it.submission.id]: e.target.value }))
+                }
+                placeholder="Skriv en kommentar (frivilligt)"
+                maxLength={500}
+                rows={2}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 10,
+                  padding: "8px 10px",
+                  color: C.text,
+                  fontSize: 13,
+                  fontFamily: "inherit",
+                  resize: "vertical",
+                  marginBottom: 10
+                }}
+              />
               <div style={{ display: "flex", gap: 8 }}>
                 <Knapp title="Avvisa" style="secondary" onClick={() => review(it, "reject")} />
                 <Knapp title="Godkänn" onClick={() => review(it, "approve")} />

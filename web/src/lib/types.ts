@@ -68,6 +68,8 @@ export interface MissionSubmission {
   reviewed_by: string | null;
   reviewed_at: string | null;
   note: string | null;
+  child_note: string | null;
+  photo_path: string | null;
 }
 
 export interface CoinLedgerEntry {
