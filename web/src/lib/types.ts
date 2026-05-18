@@ -89,6 +89,7 @@ export interface ChildProgress {
   family_id: string;
   nickname: string;
   avatar_emoji: string;
+  global_leaderboard_opt_in: boolean;
   mynt_today: number;
   approved_missions: number;
 }

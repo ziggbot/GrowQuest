@@ -22,6 +22,7 @@ export function LeaderboardScreen() {
         .from("child_progress")
         .select("*")
         .eq("family_id", familyId)
+        .eq("global_leaderboard_opt_in", true)
         .order("mynt_today", { ascending: false });
       if (error) setErr(error.message);
       else setRows((data ?? []) as ChildProgress[]);
@@ -49,6 +50,14 @@ export function LeaderboardScreen() {
 
         {loading && <p style={{ color: C.muted, fontSize: 13, marginTop: 12 }}>Laddar…</p>}
         {err && <p style={{ color: C.red, fontSize: 13, marginTop: 12 }}>{err}</p>}
+        {!loading && !err && rows.length === 0 && (
+          <Kort>
+            <p style={{ color: C.muted, fontSize: 13, margin: 0, textAlign: "center" }}>
+              Inga barn deltar i topplistan än. Slå på “Visa i global topplista”
+              i Inställningar för att vara med.
+            </p>
+          </Kort>
+        )}
 
         <div style={{ display: "grid", gap: 8, marginTop: 12 }}>
           {rows.map((r, i) => {
