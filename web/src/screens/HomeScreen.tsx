@@ -351,30 +351,6 @@ function ParentDashboard({
       </Kort>
 
       <Kort>
-        <button
-          onClick={onOpenLeaderboard}
-          style={{
-            width: "100%",
-            background: "none",
-            border: "none",
-            color: C.text,
-            padding: 0,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            gap: 10
-          }}
-        >
-          <span style={{ fontSize: 26 }}>🏆</span>
-          <div style={{ flex: 1, textAlign: "left" }}>
-            <div style={{ fontWeight: 700, color: C.gold }}>Superäventyrare</div>
-            <div style={{ fontSize: 12, color: C.muted }}>Vem samlar mest mynt idag?</div>
-          </div>
-          <span style={{ color: C.muted }}>›</span>
-        </button>
-      </Kort>
-
-      <Kort>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
           <div style={{ flex: 1 }}>
             <h3 style={{ margin: 0 }}>Dagens aktiva uppdrag</h3>
@@ -433,6 +409,30 @@ function ParentDashboard({
           ))}
         </Kort>
       )}
+
+      <Kort>
+        <button
+          onClick={onOpenLeaderboard}
+          style={{
+            width: "100%",
+            background: "none",
+            border: "none",
+            color: C.text,
+            padding: 0,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 10
+          }}
+        >
+          <span style={{ fontSize: 26 }}>🏆</span>
+          <div style={{ flex: 1, textAlign: "left" }}>
+            <div style={{ fontWeight: 700, color: C.gold }}>Superäventyrare</div>
+            <div style={{ fontSize: 12, color: C.muted }}>Vem samlar mest mynt idag?</div>
+          </div>
+          <span style={{ color: C.muted }}>›</span>
+        </button>
+      </Kort>
     </div>
   );
 }
