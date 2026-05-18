@@ -21,10 +21,14 @@ export function SettingsScreen() {
     setLoading(true);
     const { data, error } = await supabase
       .from("child_profiles")
-      .select("*")
+      .select("id, family_id, nickname, avatar_emoji, age_band, global_leaderboard_opt_in")
       .eq("family_id", familyId)
       .order("created_at");
     setLoading(false);
+    console.log("[Settings] reload result:", {
+      error,
+      rows: data?.map((c) => ({ id: c.id, opt_in: c.global_leaderboard_opt_in }))
+    });
     if (error) setErr(error.message);
     else setChildren((data ?? []) as ChildProfile[]);
   }
@@ -35,7 +39,7 @@ export function SettingsScreen() {
 
   async function toggleOptIn(child: ChildProfile, value: boolean) {
     setErr(null);
-    // Optimistic update
+    // Optimistic update so the tick feels instant
     setChildren((cs) =>
       cs.map((c) => (c.id === child.id ? { ...c, global_leaderboard_opt_in: value } : c))
     );
@@ -44,6 +48,12 @@ export function SettingsScreen() {
       .update({ global_leaderboard_opt_in: value })
       .eq("id", child.id)
       .select("id, global_leaderboard_opt_in");
+    console.log("[Settings] toggleOptIn response:", {
+      requestedValue: value,
+      childId: child.id,
+      error,
+      data
+    });
     if (error) {
       console.error("toggleOptIn failed", error);
       setErr(`Kunde inte spara: ${error.message}`);
@@ -54,6 +64,18 @@ export function SettingsScreen() {
       console.error("toggleOptIn returned no rows", { childId: child.id });
       setErr("Sparades inte (inga rader uppdaterade). Migrationen kanske inte är klar än.");
       void reload();
+      return;
+    }
+    // Sync local state to the actual server value (so a silent server-side
+    // rewrite is visible, not papered over by the optimistic update).
+    const serverValue = data[0].global_leaderboard_opt_in;
+    setChildren((cs) =>
+      cs.map((c) => (c.id === child.id ? { ...c, global_leaderboard_opt_in: serverValue } : c))
+    );
+    if (serverValue !== value) {
+      setErr(
+        `Servern returnerade ${serverValue} fast vi skickade ${value}. Kolla console för detaljer.`
+      );
     }
   }
 
