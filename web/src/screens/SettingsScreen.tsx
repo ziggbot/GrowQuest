@@ -222,7 +222,9 @@ function ChildRow({
         </button>
       </div>
 
-      <label
+      <div
+        role="button"
+        onClick={() => onToggleOptIn(!child.global_leaderboard_opt_in)}
         style={{
           display: "flex",
           alignItems: "center",
@@ -237,7 +239,7 @@ function ChildRow({
         <input
           type="checkbox"
           checked={Boolean(child.global_leaderboard_opt_in)}
-          onChange={(e) => onToggleOptIn(e.target.checked)}
+          readOnly
           style={{ width: 18, height: 18, accentColor: C.gold, margin: 0 }}
         />
         <div style={{ flex: 1 }}>
@@ -248,7 +250,7 @@ function ChildRow({
             Tillåt att {child.nickname}s mynt syns på den globala superäventyrar-listan.
           </div>
         </div>
-      </label>
+      </div>
     </div>
   );
 }
