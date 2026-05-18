@@ -1,0 +1,295 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "../lib/supabase";
+import { useSession } from "../lib/session";
+import type { ChildProfile } from "../lib/types";
+import { C } from "../design/tokens";
+import { Kort, Knapp, Input, ScreenContainer } from "../design/components";
+import { AddChildSheet } from "./AddChildSheet";
+
+export function SettingsScreen() {
+  const nav = useNavigate();
+  const { user, familyId } = useSession();
+  const [children, setChildren] = useState<ChildProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editing, setEditing] = useState<ChildProfile | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  async function reload() {
+    if (!familyId) return;
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("child_profiles")
+      .select("*")
+      .eq("family_id", familyId)
+      .order("created_at");
+    setLoading(false);
+    if (error) setErr(error.message);
+    else setChildren((data ?? []) as ChildProfile[]);
+  }
+
+  useEffect(() => {
+    void reload();
+  }, [familyId]);
+
+  async function toggleOptIn(child: ChildProfile, value: boolean) {
+    // Optimistic update
+    setChildren((cs) =>
+      cs.map((c) => (c.id === child.id ? { ...c, global_leaderboard_opt_in: value } : c))
+    );
+    const { error } = await supabase
+      .from("child_profiles")
+      .update({ global_leaderboard_opt_in: value })
+      .eq("id", child.id);
+    if (error) {
+      setErr(error.message);
+      void reload();
+    }
+  }
+
+  if (!familyId) {
+    return (
+      <ScreenContainer>
+        <p style={{ color: C.muted, textAlign: "center", marginTop: 80 }}>Laddar…</p>
+      </ScreenContainer>
+    );
+  }
+
+  return (
+    <ScreenContainer>
+      <div style={{ maxWidth: 480, margin: "0 auto", display: "grid", gap: 16 }}>
+        {/* Top bar */}
+        <div style={{ display: "flex", alignItems: "center", padding: "4px 0 8px", gap: 12 }}>
+          <button
+            onClick={() => nav("/")}
+            style={{
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: 999,
+              padding: "8px 14px",
+              color: C.text,
+              cursor: "pointer",
+              fontSize: 14,
+              fontWeight: 600,
+              boxShadow: C.shadowSoft
+            }}
+          >
+            ‹ Tillbaka
+          </button>
+          <h2 style={{ margin: 0, flex: 1, color: C.text, fontSize: 20, fontWeight: 800 }}>
+            Inställningar
+          </h2>
+        </div>
+
+        {err && <p style={{ color: C.red, fontSize: 13 }}>{err}</p>}
+
+        {/* Children */}
+        <Kort>
+          <h3 style={{ margin: "0 0 12px", color: C.text }}>Barn</h3>
+          {loading && children.length === 0 ? (
+            <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>Laddar…</p>
+          ) : children.length === 0 ? (
+            <p style={{ color: C.muted, fontSize: 13, margin: "0 0 12px" }}>
+              Inga barn ännu.
+            </p>
+          ) : (
+            <div style={{ display: "grid", gap: 12 }}>
+              {children.map((c) => (
+                <ChildRow
+                  key={c.id}
+                  child={c}
+                  onEdit={() => setEditing(c)}
+                  onToggleOptIn={(v) => void toggleOptIn(c, v)}
+                />
+              ))}
+            </div>
+          )}
+          <div style={{ marginTop: 14 }}>
+            <Knapp title="+ Lägg till barn" onClick={() => setShowAdd(true)} />
+          </div>
+        </Kort>
+
+        {/* Password */}
+        <PasswordCard email={user?.email ?? null} />
+
+        {/* About */}
+        <Kort>
+          <h3 style={{ margin: "0 0 8px", color: C.text }}>Om</h3>
+          <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>
+            GrowQuest · {user?.email}
+          </p>
+        </Kort>
+      </div>
+
+      {showAdd && (
+        <AddChildSheet
+          familyId={familyId}
+          onClose={() => setShowAdd(false)}
+          onSaved={(c) => {
+            setChildren((cs) => [...cs, c]);
+            setShowAdd(false);
+          }}
+        />
+      )}
+
+      {editing && (
+        <AddChildSheet
+          familyId={familyId}
+          editing={editing}
+          onClose={() => setEditing(null)}
+          onSaved={(c) => {
+            setChildren((cs) => cs.map((x) => (x.id === c.id ? c : x)));
+            setEditing(null);
+          }}
+        />
+      )}
+    </ScreenContainer>
+  );
+}
+
+function ChildRow({
+  child,
+  onEdit,
+  onToggleOptIn
+}: {
+  child: ChildProfile;
+  onEdit: () => void;
+  onToggleOptIn: (value: boolean) => void;
+}) {
+  return (
+    <div
+      style={{
+        background: C.surfaceHov,
+        border: `1px solid ${C.border}`,
+        borderRadius: 14,
+        padding: 12,
+        display: "grid",
+        gap: 10
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ fontSize: 32 }}>{child.avatar_emoji}</span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, color: C.text, fontSize: 15 }}>{child.nickname}</div>
+          <div style={{ color: C.muted, fontSize: 12 }}>{child.age_band ?? "—"}</div>
+        </div>
+        <button
+          onClick={onEdit}
+          style={{
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: 10,
+            padding: "6px 12px",
+            color: C.text,
+            cursor: "pointer",
+            fontSize: 13,
+            fontWeight: 600
+          }}
+        >
+          Ändra
+        </button>
+      </div>
+
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "8px 10px",
+          background: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: 10,
+          cursor: "pointer"
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={child.global_leaderboard_opt_in}
+          onChange={(e) => onToggleOptIn(e.target.checked)}
+          style={{ width: 18, height: 18, accentColor: C.gold, margin: 0 }}
+        />
+        <div style={{ flex: 1 }}>
+          <div style={{ color: C.text, fontSize: 13, fontWeight: 600 }}>
+            Visa i global topplista
+          </div>
+          <div style={{ color: C.muted, fontSize: 11 }}>
+            Tillåt att {child.nickname}s mynt syns på den globala superäventyrar-listan.
+          </div>
+        </div>
+      </label>
+    </div>
+  );
+}
+
+function PasswordCard({ email }: { email: string | null }) {
+  const [pw, setPw] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  const canSubmit = !saving && pw.length >= 8 && pw === confirm;
+  const mismatch = pw.length > 0 && confirm.length > 0 && pw !== confirm;
+
+  async function changePassword() {
+    if (!canSubmit) return;
+    setSaving(true);
+    setErr(null);
+    setMsg(null);
+    const { error } = await supabase.auth.updateUser({ password: pw });
+    setSaving(false);
+    if (error) {
+      setErr(error.message);
+    } else {
+      setMsg("Lösenord uppdaterat.");
+      setPw("");
+      setConfirm("");
+    }
+  }
+
+  return (
+    <Kort>
+      <h3 style={{ margin: "0 0 4px", color: C.text }}>Mitt lösenord</h3>
+      {email && (
+        <div style={{ color: C.muted, fontSize: 12, marginBottom: 12 }}>{email}</div>
+      )}
+      <div style={{ display: "grid", gap: 10 }}>
+        <div>
+          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 4 }}>
+            Nytt lösenord
+          </label>
+          <Input
+            type="password"
+            value={pw}
+            onChange={(e) => setPw(e.target.value)}
+            placeholder="Minst 8 tecken"
+            autoComplete="new-password"
+          />
+        </div>
+        <div>
+          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 4 }}>
+            Bekräfta lösenord
+          </label>
+          <Input
+            type="password"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+            placeholder="Skriv igen"
+            autoComplete="new-password"
+          />
+        </div>
+        {mismatch && (
+          <p style={{ color: C.red, fontSize: 12, margin: 0 }}>Lösenorden matchar inte.</p>
+        )}
+        {err && <p style={{ color: C.red, fontSize: 13, margin: 0 }}>{err}</p>}
+        {msg && <p style={{ color: C.green, fontSize: 13, margin: 0 }}>{msg}</p>}
+        <Knapp
+          title={saving ? "Sparar…" : "Byt lösenord"}
+          onClick={changePassword}
+          disabled={!canSubmit}
+        />
+      </div>
+    </Kort>
+  );
+}

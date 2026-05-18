@@ -13,7 +13,6 @@ import { PROFILER } from "../lib/profiler";
 import { C } from "../design/tokens";
 import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
 import { ProfilePickerScreen } from "./ProfilePickerScreen";
-import { AddChildSheet } from "./AddChildSheet";
 import { CreateMissionSheet } from "./CreateMissionSheet";
 import { ChildView } from "./ChildView";
 
@@ -31,7 +30,6 @@ export function HomeScreen() {
   const [todaySubs, setTodaySubs] = useState<TodaySubMap>({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
-  const [showAddChild, setShowAddChild] = useState(false);
   const [showCreateMission, setShowCreateMission] = useState(false);
   const [perspective, setPerspective] = useState<Perspective>({ kind: "parent" });
 
@@ -133,7 +131,8 @@ export function HomeScreen() {
             alignItems: "center",
             padding: "8px 4px 12px",
             borderBottom: `1px solid ${C.border}`,
-            marginBottom: 12
+            marginBottom: 12,
+            gap: 8
           }}
         >
           <div style={{ flex: 1 }}>
@@ -147,6 +146,29 @@ export function HomeScreen() {
             style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 13 }}
           >
             Logga ut
+          </button>
+          <button
+            onClick={() => nav("/settings")}
+            aria-label="Inställningar"
+            title="Inställningar"
+            style={{
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: 999,
+              width: 36,
+              height: 36,
+              padding: 0,
+              color: C.text,
+              cursor: "pointer",
+              fontSize: 17,
+              lineHeight: 1,
+              boxShadow: C.shadowSoft,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          >
+            ⚙
           </button>
         </div>
 
@@ -168,21 +190,23 @@ export function HomeScreen() {
                 onClick={() => setPerspective({ kind: "child", id: c.id })}
               />
             ))}
-            <button
-              onClick={() => setShowAddChild(true)}
-              style={{
-                padding: "8px 12px",
-                background: "transparent",
-                border: `1px dashed ${C.border}`,
-                borderRadius: 999,
-                color: C.muted,
-                cursor: "pointer",
-                fontSize: 12,
-                whiteSpace: "nowrap"
-              }}
-            >
-              + Barn
-            </button>
+            {children.length === 0 && (
+              <button
+                onClick={() => nav("/settings")}
+                style={{
+                  padding: "8px 12px",
+                  background: "transparent",
+                  border: `1px dashed ${C.border}`,
+                  borderRadius: 999,
+                  color: C.muted,
+                  cursor: "pointer",
+                  fontSize: 12,
+                  whiteSpace: "nowrap"
+                }}
+              >
+                + Lägg till barn
+              </button>
+            )}
           </div>
         </div>
 
@@ -194,7 +218,7 @@ export function HomeScreen() {
             missions={missions}
             pendingCount={pendingCount}
             todaySubs={todaySubs}
-            onAddChild={() => setShowAddChild(true)}
+            onAddChild={() => nav("/settings")}
             onCreateMission={() => setShowCreateMission(true)}
             onOpenWallet={(c) => nav(`/wallet/${c.id}`)}
             onOpenApprove={() => nav(`/approve`)}
@@ -204,17 +228,6 @@ export function HomeScreen() {
         ) : activeChild ? (
           <ChildView child={activeChild} familyId={familyId} onOpenWallet={() => nav(`/wallet/${activeChild.id}`)} />
         ) : null}
-
-        {showAddChild && (
-          <AddChildSheet
-            familyId={familyId}
-            onClose={() => setShowAddChild(false)}
-            onSaved={(c) => {
-              setChildren((cs) => [...cs, c]);
-              setShowAddChild(false);
-            }}
-          />
-        )}
 
         {showCreateMission && profileEntry && (
           <CreateMissionSheet

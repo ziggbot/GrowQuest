@@ -28,6 +28,7 @@ export interface ChildProfile {
   nickname: string;
   avatar_emoji: string;
   age_band: AgeBand | null;
+  global_leaderboard_opt_in: boolean;
 }
 
 export type Recurrence = "once" | "daily" | "weekly";

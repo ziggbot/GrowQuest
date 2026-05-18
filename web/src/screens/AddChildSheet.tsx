@@ -10,19 +10,22 @@ const AGE_BANDS: AgeBand[] = ["4-6", "7-9", "10-12", "13+"];
 
 export function AddChildSheet({
   familyId,
+  editing,
   onClose,
   onSaved
 }: {
   familyId: string;
+  editing?: ChildProfile;
   onClose: () => void;
   onSaved: (c: ChildProfile) => void;
 }) {
-  const [nickname, setNickname] = useState("");
-  const [avatar, setAvatar] = useState<string>(AVATARER[0]);
-  const [ageBand, setAgeBand] = useState<AgeBand>("7-9");
+  const [nickname, setNickname] = useState(editing?.nickname ?? "");
+  const [avatar, setAvatar] = useState<string>(editing?.avatar_emoji ?? AVATARER[0]);
+  const [ageBand, setAgeBand] = useState<AgeBand>(editing?.age_band ?? "7-9");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const isEditing = !!editing;
   const canSubmit = !saving && nickname.trim().length >= 1 && nickname.trim().length <= 30;
 
   async function save() {
@@ -36,11 +39,14 @@ export function AddChildSheet({
         avatar_emoji: avatar,
         age_band: ageBand
       };
-      const { data, error } = await supabase
-        .from("child_profiles")
-        .insert(row)
-        .select()
-        .single();
+      const { data, error } = isEditing
+        ? await supabase
+            .from("child_profiles")
+            .update(row)
+            .eq("id", editing!.id)
+            .select()
+            .single()
+        : await supabase.from("child_profiles").insert(row).select().single();
       if (error) throw error;
       onSaved(data as ChildProfile);
     } catch (e) {
@@ -51,7 +57,7 @@ export function AddChildSheet({
   }
 
   return (
-    <Sheet title="Nytt barn" onClose={onClose}>
+    <Sheet title={isEditing ? "Ändra barn" : "Nytt barn"} onClose={onClose}>
       <div style={{ display: "grid", gap: 14 }}>
         <Kort>
           <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 6 }}>Smeknamn</label>
@@ -109,7 +115,11 @@ export function AddChildSheet({
 
         {err && <p style={{ color: C.red, fontSize: 13, margin: 0 }}>{err}</p>}
 
-        <Knapp title={saving ? "Sparar…" : "Lägg till barn"} onClick={save} disabled={!canSubmit} />
+        <Knapp
+          title={saving ? "Sparar…" : isEditing ? "Spara ändringar" : "Lägg till barn"}
+          onClick={save}
+          disabled={!canSubmit}
+        />
       </div>
     </Sheet>
   );

@@ -7,6 +7,7 @@ import { ApprovalQueueScreen } from "./screens/ApprovalQueueScreen";
 import { WalletScreen } from "./screens/WalletScreen";
 import { LeaderboardScreen } from "./screens/LeaderboardScreen";
 import { MissionDetailScreen } from "./screens/MissionDetailScreen";
+import { SettingsScreen } from "./screens/SettingsScreen";
 import { C } from "./design/tokens";
 
 export function App() {
@@ -36,6 +37,10 @@ export function App() {
         <Route
           path="/approve"
           element={childId ? <Navigate to="/" replace /> : <ApprovalQueueScreen />}
+        />
+        <Route
+          path="/settings"
+          element={childId ? <Navigate to="/" replace /> : <SettingsScreen />}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
