@@ -10,7 +10,6 @@ interface QueueItem {
   submission: MissionSubmission;
   mission: Mission;
   child: ChildProfile;
-  photoUrl: string | null;
 }
 
 export function ApprovalQueueScreen() {
@@ -43,25 +42,11 @@ export function ApprovalQueueScreen() {
 
       const missions = new Map((mRes.data as Mission[]).map((m) => [m.id, m]));
       const children = new Map((cRes.data as ChildProfile[]).map((c) => [c.id, c]));
-      const subs = subsRes.data as MissionSubmission[];
-      const photoSubs = subs.filter((s) => s.photo_path);
-      const photoUrls = new Map<string, string>();
-      if (photoSubs.length > 0) {
-        const { data: signed } = await supabase.storage
-          .from("mission-photos")
-          .createSignedUrls(
-            photoSubs.map((s) => s.photo_path as string),
-            600
-          );
-        (signed ?? []).forEach((row, i) => {
-          if (row.signedUrl) photoUrls.set(photoSubs[i].id, row.signedUrl);
-        });
-      }
       const list: QueueItem[] = [];
-      for (const s of subs) {
+      for (const s of subsRes.data as MissionSubmission[]) {
         const m = missions.get(s.mission_id);
         const c = children.get(s.child_id);
-        if (m && c) list.push({ submission: s, mission: m, child: c, photoUrl: photoUrls.get(s.id) ?? null });
+        if (m && c) list.push({ submission: s, mission: m, child: c });
       }
       setItems(list);
     } catch (e) {
@@ -131,15 +116,15 @@ export function ApprovalQueueScreen() {
               {it.mission.description && (
                 <p style={{ color: C.muted, fontSize: 12, margin: "0 0 10px" }}>{it.mission.description}</p>
               )}
-              {it.photoUrl && (
+              {it.submission.photo_data && (
                 <a
-                  href={it.photoUrl}
+                  href={it.submission.photo_data}
                   target="_blank"
                   rel="noreferrer"
                   style={{ display: "block", marginBottom: 10 }}
                 >
                   <img
-                    src={it.photoUrl}
+                    src={it.submission.photo_data}
                     alt={`Bevis från ${it.child.nickname}`}
                     style={{
                       width: "100%",

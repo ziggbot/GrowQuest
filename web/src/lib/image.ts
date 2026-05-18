@@ -1,12 +1,12 @@
-// Downscale a captured photo to a JPEG before upload. Phones routinely
-// hand back 8–12 MP shots; missions are gameplay UI, not photography,
-// so we cap the longest edge and re-encode at ~0.85 quality.
+// Downscale a captured photo and return it as a base64 data URL.
+// We keep these small enough to store inline in a mission_submissions row
+// (~800px longest edge, ~0.75 quality → roughly 60–120 KB per photo).
 
-export async function compressImage(
+export async function compressImageToDataUrl(
   file: File,
-  maxDim = 1280,
-  quality = 0.85
-): Promise<Blob> {
+  maxDim = 800,
+  quality = 0.75
+): Promise<string> {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -24,13 +24,7 @@ export async function compressImage(
     const ctx = canvas.getContext("2d");
     if (!ctx) throw new Error("Canvas saknas");
     ctx.drawImage(img, 0, 0, w, h);
-    return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error("Komprimering misslyckades"))),
-        "image/jpeg",
-        quality
-      );
-    });
+    return canvas.toDataURL("image/jpeg", quality);
   } finally {
     URL.revokeObjectURL(url);
   }

@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 import { useSession } from "../lib/session";
 import type { Mission } from "../lib/types";
 import { tipsFor } from "../lib/tips";
-import { compressImage } from "../lib/image";
+import { compressImageToDataUrl } from "../lib/image";
 import { CK } from "../design/tokens";
 import { ChildScreenContainer, KortKid, KnappKid, PillKid } from "../design/components";
 
@@ -68,31 +68,16 @@ export function MissionDetailScreen() {
     setSubmitting(true);
     setErr(null);
     try {
-      const submissionId = crypto.randomUUID();
-      let photoPath: string | null = null;
-      if (photoFile) {
-        const blob = await compressImage(photoFile);
-        photoPath = `${familyId}/${submissionId}.jpg`;
-        const { error: upErr } = await supabase.storage
-          .from("mission-photos")
-          .upload(photoPath, blob, { contentType: "image/jpeg", upsert: false });
-        if (upErr) throw upErr;
-      }
+      const photoData = photoFile ? await compressImageToDataUrl(photoFile) : null;
       const trimmedNote = note.trim();
       const { error } = await supabase.from("mission_submissions").insert({
-        id: submissionId,
         family_id: familyId,
         mission_id: mission.id,
         child_id: childId,
-        photo_path: photoPath,
+        photo_data: photoData,
         child_note: trimmedNote.length > 0 ? trimmedNote : null
       });
-      if (error) {
-        if (photoPath) {
-          await supabase.storage.from("mission-photos").remove([photoPath]);
-        }
-        throw error;
-      }
+      if (error) throw error;
       setSubmitted(true);
     } catch (e) {
       setErr((e as Error).message);

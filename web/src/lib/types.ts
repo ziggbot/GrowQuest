@@ -69,7 +69,7 @@ export interface MissionSubmission {
   reviewed_at: string | null;
   note: string | null;
   child_note: string | null;
-  photo_path: string | null;
+  photo_data: string | null;
 }
 
 export interface CoinLedgerEntry {
