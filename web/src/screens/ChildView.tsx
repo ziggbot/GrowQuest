@@ -268,6 +268,43 @@ export function ChildView({
         🕓 Historik
       </button>
 
+      <button
+        onClick={() => nav("/leaderboard")}
+        style={{
+          background: "none",
+          border: "none",
+          padding: 0,
+          cursor: "pointer",
+          color: CK.text
+        }}
+      >
+        <KortKid>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                width: 48,
+                height: 48,
+                borderRadius: 14,
+                background: CK.accentFade,
+                display: "grid",
+                placeItems: "center",
+                fontSize: 26,
+                flexShrink: 0
+              }}
+            >
+              🏆
+            </div>
+            <div style={{ flex: 1, textAlign: "left" }}>
+              <div style={{ fontWeight: 800, fontSize: 15, color: CK.gold }}>Superäventyrare</div>
+              <div style={{ fontSize: 12, color: CK.muted, marginTop: 2 }}>
+                Vem samlar mest mynt idag?
+              </div>
+            </div>
+            <span style={{ color: CK.accent, fontSize: 22, fontWeight: 700 }}>›</span>
+          </div>
+        </KortKid>
+      </button>
+
       {showHistory && (
         <MissionHistorySheet
           child={child}
