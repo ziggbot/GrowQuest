@@ -34,16 +34,25 @@ export function SettingsScreen() {
   }, [familyId]);
 
   async function toggleOptIn(child: ChildProfile, value: boolean) {
+    setErr(null);
     // Optimistic update
     setChildren((cs) =>
       cs.map((c) => (c.id === child.id ? { ...c, global_leaderboard_opt_in: value } : c))
     );
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("child_profiles")
       .update({ global_leaderboard_opt_in: value })
-      .eq("id", child.id);
+      .eq("id", child.id)
+      .select("id, global_leaderboard_opt_in");
     if (error) {
-      setErr(error.message);
+      console.error("toggleOptIn failed", error);
+      setErr(`Kunde inte spara: ${error.message}`);
+      void reload();
+      return;
+    }
+    if (!data || data.length === 0) {
+      console.error("toggleOptIn returned no rows", { childId: child.id });
+      setErr("Sparades inte (inga rader uppdaterade). Migrationen kanske inte är klar än.");
       void reload();
     }
   }
@@ -205,7 +214,7 @@ function ChildRow({
       >
         <input
           type="checkbox"
-          checked={child.global_leaderboard_opt_in}
+          checked={Boolean(child.global_leaderboard_opt_in)}
           onChange={(e) => onToggleOptIn(e.target.checked)}
           style={{ width: 18, height: 18, accentColor: C.gold, margin: 0 }}
         />
