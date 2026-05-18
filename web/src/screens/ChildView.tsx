@@ -82,6 +82,10 @@ export function ChildView({
       const visible = allMissions.filter((m) => {
         if (m.assigned_child_id !== null && m.assigned_child_id !== child.id) return false;
         if (hiddenApproved.has(m.id)) return false;
+        // "once" missions are for the day they were created; after midnight
+        // they disappear from the active list and surface in history as
+        // "ej utfört" if never done.
+        if (m.recurrence === "once" && new Date(m.created_at) < startOfToday) return false;
         return true;
       });
 

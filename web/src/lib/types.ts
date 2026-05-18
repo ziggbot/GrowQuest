@@ -52,6 +52,7 @@ export interface Mission {
   recurrence: Recurrence;
   active: boolean;
   created_by: string;
+  created_at: string;
   assigned_child_id: string | null;
 }
 

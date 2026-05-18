@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { ChildProfile, SubmissionStatus } from "../lib/types";
+import type { ChildProfile, Mission, SubmissionStatus } from "../lib/types";
 import { CK } from "../design/tokens";
 import { KortKid, PillKid } from "../design/components";
 
+type HistoryStatus = SubmissionStatus | "missed";
+
 interface HistoryEntry {
   id: string;
-  status: SubmissionStatus;
+  status: HistoryStatus;
   date: string;
   title: string;
   reward_mynt: number;
@@ -14,6 +16,7 @@ interface HistoryEntry {
 
 interface SubmissionRow {
   id: string;
+  mission_id: string;
   status: SubmissionStatus;
   submitted_at: string;
   reviewed_at: string | null;
@@ -38,27 +41,59 @@ export function MissionHistorySheet({
       setLoading(true);
       setErr(null);
       try {
-        const { data, error } = await supabase
-          .from("mission_submissions")
-          .select("id, status, submitted_at, reviewed_at, missions(title, reward_mynt)")
-          .eq("family_id", familyId)
-          .eq("child_id", child.id)
-          .in("status", ["approved", "rejected"])
-          .order("submitted_at", { ascending: false })
-          .limit(100);
-        if (error) throw error;
-        const rows = (data ?? []) as unknown as SubmissionRow[];
-        setEntries(
-          rows
-            .filter((r) => r.missions)
-            .map((r) => ({
-              id: r.id,
-              status: r.status,
-              date: r.reviewed_at ?? r.submitted_at,
-              title: r.missions!.title,
-              reward_mynt: r.missions!.reward_mynt
-            }))
-        );
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+
+        const [subsRes, missionsRes] = await Promise.all([
+          supabase
+            .from("mission_submissions")
+            .select("id, mission_id, status, submitted_at, reviewed_at, missions(title, reward_mynt)")
+            .eq("family_id", familyId)
+            .eq("child_id", child.id)
+            .in("status", ["approved", "rejected"])
+            .order("submitted_at", { ascending: false })
+            .limit(100),
+          supabase
+            .from("missions")
+            .select("*")
+            .eq("family_id", familyId)
+            .eq("recurrence", "once")
+        ]);
+        if (subsRes.error) throw subsRes.error;
+        if (missionsRes.error) throw missionsRes.error;
+
+        const subs = (subsRes.data ?? []) as unknown as SubmissionRow[];
+        const onceMissions = (missionsRes.data ?? []) as Mission[];
+
+        const submitted = new Set(subs.map((s) => s.mission_id));
+        const list: HistoryEntry[] = subs
+          .filter((r) => r.missions)
+          .map((r) => ({
+            id: r.id,
+            status: r.status,
+            date: r.reviewed_at ?? r.submitted_at,
+            title: r.missions!.title,
+            reward_mynt: r.missions!.reward_mynt
+          }));
+
+        // Derive "ej utfört" entries for once-missions that were for an earlier
+        // day, addressed to this child (or unassigned), and never resulted in
+        // any submission from this child.
+        for (const m of onceMissions) {
+          if (m.assigned_child_id !== null && m.assigned_child_id !== child.id) continue;
+          if (submitted.has(m.id)) continue;
+          if (new Date(m.created_at) >= startOfToday) continue;
+          list.push({
+            id: `missed-${m.id}`,
+            status: "missed",
+            date: m.created_at,
+            title: m.title,
+            reward_mynt: m.reward_mynt
+          });
+        }
+
+        list.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        setEntries(list);
       } catch (e) {
         setErr((e as Error).message);
       } finally {
@@ -142,7 +177,13 @@ export function MissionHistorySheet({
                 boxShadow: CK.shadowSoft
               }}
             >
-              <div style={{ fontSize: 22 }}>{entry.status === "approved" ? "✅" : "❌"}</div>
+              <div style={{ fontSize: 22 }}>
+                {entry.status === "approved"
+                  ? "✅"
+                  : entry.status === "rejected"
+                  ? "❌"
+                  : "⌛"}
+              </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
                   style={{
@@ -165,8 +206,10 @@ export function MissionHistorySheet({
               </div>
               {entry.status === "approved" ? (
                 <PillKid text={`+${entry.reward_mynt} 🪙`} tint={CK.gold} />
-              ) : (
+              ) : entry.status === "rejected" ? (
                 <PillKid text="Nekad" tint={CK.red} />
+              ) : (
+                <PillKid text="Ej utfört" tint={CK.muted} />
               )}
             </div>
           ))}
