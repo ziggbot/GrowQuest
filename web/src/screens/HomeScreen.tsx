@@ -461,7 +461,8 @@ function MissionLine({ mission, status }: { mission: Mission; status: Submission
   return (
     <div
       style={{
-        display: "flex",
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr) 64px 110px",
         alignItems: "center",
         gap: 8,
         paddingLeft: 8
@@ -469,9 +470,9 @@ function MissionLine({ mission, status }: { mission: Mission; status: Submission
     >
       <span
         style={{
-          flex: 1,
           color: C.text,
-          fontSize: 14,
+          fontSize: 13,
+          fontWeight: 400,
           overflow: "hidden",
           textOverflow: "ellipsis",
           whiteSpace: "nowrap"
