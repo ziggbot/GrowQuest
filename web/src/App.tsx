@@ -4,6 +4,7 @@ import { AuthScreen } from "./screens/AuthScreen";
 import { HomeScreen } from "./screens/HomeScreen";
 import { ChildHomeScreen } from "./screens/ChildHomeScreen";
 import { ApprovalQueueScreen } from "./screens/ApprovalQueueScreen";
+import { ScreenTimeQueueScreen } from "./screens/ScreenTimeQueueScreen";
 import { WalletScreen } from "./screens/WalletScreen";
 import { LeaderboardScreen } from "./screens/LeaderboardScreen";
 import { MissionDetailScreen } from "./screens/MissionDetailScreen";
@@ -41,6 +42,10 @@ export function App() {
         <Route
           path="/settings"
           element={childId ? <Navigate to="/" replace /> : <SettingsScreen />}
+        />
+        <Route
+          path="/screentime"
+          element={childId ? <Navigate to="/" replace /> : <ScreenTimeQueueScreen />}
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

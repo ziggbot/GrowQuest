@@ -27,6 +27,7 @@ export function HomeScreen() {
   const [children, setChildren] = useState<ChildProfile[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
+  const [pendingRedemptionsCount, setPendingRedemptionsCount] = useState(0);
   const [todaySubs, setTodaySubs] = useState<TodaySubMap>({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -39,7 +40,7 @@ export function HomeScreen() {
     setErr(null);
     try {
       const startOfToday = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
-      const [pcRes, kidsRes, mRes, pRes, todayRes] = await Promise.all([
+      const [pcRes, kidsRes, mRes, pRes, todayRes, rRes] = await Promise.all([
         supabase.from("profile_configs").select("*").eq("family_id", familyId).maybeSingle(),
         supabase.from("child_profiles").select("*").eq("family_id", familyId).order("created_at"),
         supabase.from("missions").select("*").eq("family_id", familyId).eq("active", true),
@@ -48,13 +49,16 @@ export function HomeScreen() {
           .from("mission_submissions")
           .select("mission_id, child_id, status")
           .eq("family_id", familyId)
-          .gte("submitted_at", startOfToday)
+          .gte("submitted_at", startOfToday),
+        supabase.from("redemptions").select("id").eq("family_id", familyId).eq("status", "pending")
       ]);
       if (pcRes.error && pcRes.error.code !== "PGRST116") throw pcRes.error;
       if (kidsRes.error) throw kidsRes.error;
       if (mRes.error) throw mRes.error;
       if (pRes.error) throw pRes.error;
       if (todayRes.error) throw todayRes.error;
+      // Soft-tolerate redemptions status not being on cloud yet.
+      const redemptionsRows = rRes.error ? [] : rRes.data ?? [];
 
       const subMap: TodaySubMap = {};
       for (const sub of (todayRes.data ?? []) as Pick<MissionSubmission, "mission_id" | "child_id" | "status">[]) {
@@ -73,6 +77,7 @@ export function HomeScreen() {
       setChildren((kidsRes.data ?? []) as ChildProfile[]);
       setMissions((mRes.data ?? []) as Mission[]);
       setPendingCount(pRes.data?.length ?? 0);
+      setPendingRedemptionsCount(redemptionsRows.length);
       setTodaySubs(subMap);
     } catch (e) {
       setErr((e as Error).message);
@@ -215,11 +220,13 @@ export function HomeScreen() {
             children={children}
             missions={missions}
             pendingCount={pendingCount}
+            pendingRedemptionsCount={pendingRedemptionsCount}
             todaySubs={todaySubs}
             onAddChild={() => nav("/settings")}
             onCreateMission={() => setShowCreateMission(true)}
             onOpenWallet={(c) => nav(`/wallet/${c.id}`)}
             onOpenApprove={() => nav(`/approve`)}
+            onOpenScreenTime={() => nav(`/screentime`)}
             onOpenLeaderboard={() => nav(`/leaderboard`)}
             loading={loading}
           />
@@ -285,22 +292,26 @@ function ParentDashboard({
   children,
   missions,
   pendingCount,
+  pendingRedemptionsCount,
   todaySubs,
   onAddChild,
   onCreateMission,
   onOpenWallet,
   onOpenApprove,
+  onOpenScreenTime,
   onOpenLeaderboard,
   loading
 }: {
   children: ChildProfile[];
   missions: Mission[];
   pendingCount: number;
+  pendingRedemptionsCount: number;
   todaySubs: TodaySubMap;
   onAddChild: () => void;
   onCreateMission: () => void;
   onOpenWallet: (c: ChildProfile) => void;
   onOpenApprove: () => void;
+  onOpenScreenTime: () => void;
   onOpenLeaderboard: () => void;
   loading: boolean;
 }) {
@@ -344,6 +355,37 @@ function ParentDashboard({
             {pendingCount > 0
               ? `Du har ${pendingCount} inskickade uppdrag`
               : "Inga uppdrag väntar"}
+          </span>
+          <span style={{ color: C.muted }}>›</span>
+        </button>
+      </Kort>
+
+      <Kort>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+          <h3 style={{ margin: 0, flex: 1 }}>Skärmbegäran</h3>
+          {pendingRedemptionsCount > 0 && (
+            <Pill text={String(pendingRedemptionsCount)} tint={C.purple} />
+          )}
+        </div>
+        <button
+          onClick={onOpenScreenTime}
+          style={{
+            width: "100%",
+            background: "none",
+            border: "none",
+            color: C.text,
+            textAlign: "left",
+            padding: 0,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between"
+          }}
+        >
+          <span>
+            {pendingRedemptionsCount > 0
+              ? `${pendingRedemptionsCount} barn väntar på skärmtid`
+              : "Inga öppna skärm-begäran"}
           </span>
           <span style={{ color: C.muted }}>›</span>
         </button>

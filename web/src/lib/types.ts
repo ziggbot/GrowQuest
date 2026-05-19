@@ -97,6 +97,8 @@ export interface ChildProgress {
   approved_missions: number;
 }
 
+export type RedemptionStatus = "pending" | "approved" | "rejected";
+
 export interface Redemption {
   id: string;
   family_id: string;
@@ -106,4 +108,9 @@ export interface Redemption {
   mynt_cost: number;
   started_at: string;
   ends_at: string;
+  status: RedemptionStatus;
+  requested_apps: string[] | null;
+  other_app: string | null;
+  reviewed_by: string | null;
+  reviewed_at: string | null;
 }

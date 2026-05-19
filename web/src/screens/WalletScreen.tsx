@@ -69,8 +69,15 @@ export function WalletScreen() {
       setProgress((prRes.data as ChildProgress | null) ?? null);
       setConfig((cfgRes.data as ProfileConfig | null) ?? null);
       const reds = (redRes.data ?? []) as Redemption[];
-      setUsedToday(reds.reduce((s, r) => s + r.minutes, 0));
-      setActive(reds.find((r) => new Date(r.ends_at) > new Date()) ?? null);
+      // Pending + approved both count toward today's used minutes (rejected
+      // gets a coin refund so it shouldn't subtract from the daily budget).
+      const liveReds = reds.filter((r) => r.status !== "rejected");
+      setUsedToday(liveReds.reduce((s, r) => s + r.minutes, 0));
+      setActive(
+        liveReds.find(
+          (r) => (r.status ?? "approved") === "approved" && new Date(r.ends_at) > new Date()
+        ) ?? null
+      );
     } catch (e) {
       setErr((e as Error).message);
     } finally {
