@@ -192,22 +192,26 @@ export function MissionHistorySheet({
           boxShadow: "0 -10px 40px rgba(36,58,82,0.25)"
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 14 }}>
-          <h3 style={{ margin: 0, flex: 1, color: CK.text, fontWeight: 800 }}>
-            {child.avatar_emoji} Historik
-          </h3>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 14, gap: 10 }}>
           <button
             onClick={onClose}
             style={{
-              background: "none",
-              border: "none",
-              color: CK.muted,
-              fontSize: 22,
-              cursor: "pointer"
+              background: CK.surface,
+              border: `1px solid ${CK.border}`,
+              color: CK.text,
+              cursor: "pointer",
+              padding: "6px 12px",
+              borderRadius: 999,
+              fontSize: 13,
+              fontWeight: 600,
+              boxShadow: CK.shadowSoft
             }}
           >
-            ✕
+            ‹ Tillbaka
           </button>
+          <h3 style={{ margin: 0, flex: 1, color: CK.text, fontWeight: 800 }}>
+            {child.avatar_emoji} Historik
+          </h3>
         </div>
 
         {loading && <p style={{ color: CK.muted, textAlign: "center" }}>Laddar…</p>}

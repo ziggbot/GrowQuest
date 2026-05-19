@@ -402,7 +402,7 @@ function ParentDashboard({
             onClick={onCreateMission}
             style={{ background: "none", border: "none", color: C.gold, fontWeight: 700, cursor: "pointer", fontSize: 14 }}
           >
-            + Nytt
+            + Planera uppdrag
           </button>
         </div>
         {missions.length === 0 ? (
