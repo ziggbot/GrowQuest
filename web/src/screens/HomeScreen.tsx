@@ -32,7 +32,29 @@ export function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [showCreateMission, setShowCreateMission] = useState(false);
-  const [perspective, setPerspective] = useState<Perspective>({ kind: "parent" });
+  // Persist the parent/child perspective so navigating into wallet/leaderboard
+  // and back doesn't reset us to "Förälder".
+  const [perspective, setPerspective] = useState<Perspective>(() => {
+    try {
+      const raw = sessionStorage.getItem("growquest:perspective");
+      if (raw) {
+        const parsed = JSON.parse(raw) as Perspective;
+        if (parsed?.kind === "parent" || (parsed?.kind === "child" && typeof parsed.id === "string")) {
+          return parsed;
+        }
+      }
+    } catch {
+      /* ignore */
+    }
+    return { kind: "parent" };
+  });
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("growquest:perspective", JSON.stringify(perspective));
+    } catch {
+      /* ignore */
+    }
+  }, [perspective]);
 
   async function reload() {
     if (!familyId) return;
@@ -111,7 +133,7 @@ export function HomeScreen() {
     [profile]
   );
 
-  if (!familyId) {
+  if (!familyId || loading) {
     return (
       <ScreenContainer>
         <p style={{ color: C.muted, textAlign: "center", marginTop: 80 }}>Förbereder din familj…</p>
