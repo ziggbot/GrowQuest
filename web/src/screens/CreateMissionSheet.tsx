@@ -35,7 +35,8 @@ export function CreateMissionSheet({
   children,
   missions,
   onClose,
-  onCreated
+  onCreated,
+  onMissionsChanged
 }: {
   familyId: string;
   userId: string;
@@ -44,6 +45,7 @@ export function CreateMissionSheet({
   missions: Mission[];
   onClose: () => void;
   onCreated: () => void;
+  onMissionsChanged: () => void;
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -100,6 +102,19 @@ export function CreateMissionSheet({
     setDescription(t.description ?? "");
     setRecurrence(t.recurrence);
     setReward(t.reward_mynt);
+  }
+
+  async function deleteMission(m: Mission) {
+    if (!window.confirm(`Radera "${m.title}"?`)) return;
+    const { error } = await supabase
+      .from("missions")
+      .update({ active: false })
+      .eq("id", m.id);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
+    onMissionsChanged();
   }
 
   async function deletePersonal(id: string) {
@@ -222,7 +237,7 @@ export function CreateMissionSheet({
                     key={m.id}
                     style={{
                       display: "grid",
-                      gridTemplateColumns: "minmax(0, 1fr) auto auto",
+                      gridTemplateColumns: "minmax(0, 1fr) auto auto auto",
                       alignItems: "center",
                       gap: 8,
                       padding: "6px 4px"
@@ -245,6 +260,30 @@ export function CreateMissionSheet({
                       tint={RECURRENCE_TINTS[m.recurrence]}
                     />
                     <Pill text={`${m.reward_mynt} 🪙`} tint={C.gold} />
+                    <button
+                      type="button"
+                      onClick={() => void deleteMission(m)}
+                      aria-label={`Radera ${m.title}`}
+                      title="Radera uppdrag"
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: "50%",
+                        background: "transparent",
+                        border: `1px solid ${C.border}`,
+                        color: C.red,
+                        cursor: "pointer",
+                        fontSize: 14,
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        padding: 0,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center"
+                      }}
+                    >
+                      ×
+                    </button>
                   </div>
                 ))}
               </div>

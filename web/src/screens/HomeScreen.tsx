@@ -246,6 +246,7 @@ export function HomeScreen() {
               setShowCreateMission(false);
               void reload();
             }}
+            onMissionsChanged={() => void reload()}
           />
         )}
       </div>
