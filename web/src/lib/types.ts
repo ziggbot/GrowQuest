@@ -103,7 +103,7 @@ export interface Redemption {
   id: string;
   family_id: string;
   child_id: string;
-  kind: string;
+  kind: "screen_time_minutes" | "cash_payout";
   minutes: number;
   mynt_cost: number;
   started_at: string;
@@ -113,4 +113,15 @@ export interface Redemption {
   other_app: string | null;
   reviewed_by: string | null;
   reviewed_at: string | null;
+}
+
+export interface SavingsGoal {
+  id: string;
+  family_id: string;
+  child_id: string;
+  title: string;
+  target_mynt: number;
+  emoji: string;
+  created_by: string | null;
+  created_at: string;
 }

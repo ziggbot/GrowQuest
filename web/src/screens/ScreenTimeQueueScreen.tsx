@@ -67,7 +67,9 @@ export function ScreenTimeQueueScreen() {
       setItems((xs) => xs.filter((x) => x.redemption.id !== item.redemption.id));
       setLastResult(
         action === "approve"
-          ? `${item.redemption.minutes} min godkänt.`
+          ? item.redemption.kind === "cash_payout"
+            ? `${item.redemption.mynt_cost} 🪙 godkänt att växla.`
+            : `${item.redemption.minutes} min godkänt.`
           : `Avslaget — ${item.redemption.mynt_cost} 🪙 återbetalda.`
       );
     } catch (e) {
@@ -90,7 +92,7 @@ export function ScreenTimeQueueScreen() {
         >
           ‹ Tillbaka
         </button>
-        <h2 style={{ margin: "0 0 12px" }}>Skärmbegäran</h2>
+        <h2 style={{ margin: "0 0 12px" }}>Begäran</h2>
 
         {loading && <p style={{ color: C.muted, fontSize: 13 }}>Laddar…</p>}
         {!loading && items.length === 0 && (
@@ -108,7 +110,11 @@ export function ScreenTimeQueueScreen() {
                 <span style={{ fontSize: 24 }}>{it.child.avatar_emoji}</span>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, color: C.muted }}>{it.child.nickname}</div>
-                  <div style={{ fontWeight: 700 }}>{it.redemption.minutes} min skärmtid</div>
+                  <div style={{ fontWeight: 700 }}>
+                    {it.redemption.kind === "cash_payout"
+                      ? "Växla mynt till pengar"
+                      : `${it.redemption.minutes} min skärmtid`}
+                  </div>
                 </div>
                 <Pill text={`${it.redemption.mynt_cost} 🪙`} tint={C.gold} />
               </div>

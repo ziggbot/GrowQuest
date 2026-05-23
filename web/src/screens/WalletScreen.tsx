@@ -7,7 +7,8 @@ import type {
   CoinLedgerEntry,
   ChildProgress,
   ProfileConfig,
-  Redemption
+  Redemption,
+  SavingsGoal
 } from "../lib/types";
 import { currentStadium, nextStadium } from "../lib/karaktar";
 import { C, CK } from "../design/tokens";
@@ -22,6 +23,8 @@ import {
   ChildScreenContainer
 } from "../design/components";
 import { RedeemSheet } from "./RedeemSheet";
+import { CashRedeemSheet } from "./CashRedeemSheet";
+import { CreateSavingsGoalSheet } from "./CreateSavingsGoalSheet";
 
 export function WalletScreen() {
   const { familyId, childId: deviceChildId } = useSession();
@@ -38,6 +41,9 @@ export function WalletScreen() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [showRedeem, setShowRedeem] = useState(false);
+  const [showCash, setShowCash] = useState(false);
+  const [showCreateGoal, setShowCreateGoal] = useState(false);
+  const [goals, setGoals] = useState<(SavingsGoal & { saved: number })[]>([]);
 
   async function reload() {
     if (!familyId || !childId) return;
@@ -78,6 +84,28 @@ export function WalletScreen() {
           (r) => (r.status ?? "approved") === "approved" && new Date(r.ends_at) > new Date()
         ) ?? null
       );
+
+      // Savings goals + deposited amounts
+      const { data: goalsData } = await supabase
+        .from("savings_goals")
+        .select("*")
+        .eq("child_id", childId)
+        .order("created_at");
+      const fetchedGoals = (goalsData ?? []) as SavingsGoal[];
+      if (fetchedGoals.length > 0) {
+        const { data: deps } = await supabase
+          .from("coin_ledger")
+          .select("ref_savings_goal, amount_mynt")
+          .eq("child_id", childId)
+          .eq("reason", "savings_deposit");
+        const savedMap = new Map<string, number>();
+        for (const d of (deps ?? []) as { ref_savings_goal: string; amount_mynt: number }[]) {
+          savedMap.set(d.ref_savings_goal, (savedMap.get(d.ref_savings_goal) ?? 0) + Math.abs(d.amount_mynt));
+        }
+        setGoals(fetchedGoals.map((g) => ({ ...g, saved: savedMap.get(g.id) ?? 0 })));
+      } else {
+        setGoals([]);
+      }
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -242,9 +270,96 @@ export function WalletScreen() {
           )}
 
           {config && balance > 0 && (
-            <div style={{ marginTop: 14 }}>
-              <KnappKid title="Lös in skärmtid" onClick={() => setShowRedeem(true)} />
+            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+              <KnappKid title="Begär skärmtid" onClick={() => setShowRedeem(true)} />
+              <KnappKid title="Växla till pengar" onClick={() => setShowCash(true)} />
             </div>
+          )}
+
+          {goals.length > 0 && (
+            <KortKid style={{ marginTop: 14 }}>
+              <h3
+                style={{
+                  margin: "0 0 10px",
+                  color: CK.text,
+                  fontSize: 13,
+                  fontWeight: 800,
+                  letterSpacing: 0.4,
+                  textTransform: "uppercase"
+                }}
+              >
+                Sparmål
+              </h3>
+              <div style={{ display: "grid", gap: 10 }}>
+                {goals.map((g) => {
+                  const pct = Math.min(100, Math.round((g.saved / g.target_mynt) * 100));
+                  return (
+                    <div key={g.id}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 22 }}>{g.emoji}</span>
+                        <span style={{ flex: 1, fontWeight: 700, color: CK.text, fontSize: 14 }}>
+                          {g.title}
+                        </span>
+                        <span style={{ color: CK.gold, fontWeight: 700, fontSize: 13 }}>
+                          {g.saved}/{g.target_mynt} 🪙
+                        </span>
+                      </div>
+                      <div
+                        style={{
+                          height: 10,
+                          borderRadius: 5,
+                          background: CK.surfaceMuted ?? CK.border,
+                          overflow: "hidden"
+                        }}
+                      >
+                        <div
+                          style={{
+                            height: "100%",
+                            width: `${pct}%`,
+                            borderRadius: 5,
+                            background: pct >= 100
+                              ? CK.green
+                              : `linear-gradient(90deg, ${CK.gold}, ${CK.accent})`
+                          }}
+                        />
+                      </div>
+                      {pct < 100 && balance > 0 && (
+                        <button
+                          onClick={async () => {
+                            const deposit = Math.min(balance, g.target_mynt - g.saved);
+                            if (deposit < 1) return;
+                            const { error: dErr } = await supabase.rpc("deposit_to_savings", {
+                              p_goal_id: g.id,
+                              p_amount: deposit
+                            });
+                            if (dErr) setErr(dErr.message);
+                            else void reload();
+                          }}
+                          style={{
+                            marginTop: 6,
+                            background: "transparent",
+                            border: `1px solid ${CK.border}`,
+                            borderRadius: 10,
+                            padding: "6px 12px",
+                            color: CK.gold,
+                            cursor: "pointer",
+                            fontSize: 12,
+                            fontWeight: 700
+                          }}
+                        >
+                          Spara {Math.min(balance, g.target_mynt - g.saved)} 🪙
+                        </button>
+                      )}
+                      {pct >= 100 && (
+                        <div style={{ color: CK.green, fontSize: 12, fontWeight: 700, marginTop: 4 }}>
+                          Målet nått!
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </KortKid>
           )}
 
           <KortKid style={{ marginTop: 14 }}>
@@ -296,6 +411,18 @@ export function WalletScreen() {
               onClose={() => setShowRedeem(false)}
               onRedeemed={() => {
                 setShowRedeem(false);
+                void reload();
+              }}
+            />
+          )}
+
+          {showCash && child && (
+            <CashRedeemSheet
+              child={child}
+              balance={balance}
+              onClose={() => setShowCash(false)}
+              onRedeemed={() => {
+                setShowCash(false);
                 void reload();
               }}
             />
@@ -381,8 +508,70 @@ export function WalletScreen() {
         )}
 
         {config && balance > 0 && (
+          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+            <Knapp title="Begär skärmtid" onClick={() => setShowRedeem(true)} />
+            <Knapp title="Växla till pengar" onClick={() => setShowCash(true)} />
+          </div>
+        )}
+
+        {goals.length > 0 && (
+          <Kort style={{ marginTop: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+              <h3 style={{ margin: 0, flex: 1 }}>Sparmål</h3>
+              <Knapp
+                title="+ Nytt mål"
+                onClick={() => setShowCreateGoal(true)}
+                style="secondary"
+              />
+            </div>
+            <div style={{ display: "grid", gap: 10 }}>
+              {goals.map((g) => {
+                const pct = Math.min(100, Math.round((g.saved / g.target_mynt) * 100));
+                return (
+                  <div key={g.id}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontSize: 20 }}>{g.emoji}</span>
+                      <span style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>{g.title}</span>
+                      <span style={{ color: C.gold, fontWeight: 700, fontSize: 13 }}>
+                        {g.saved}/{g.target_mynt} 🪙
+                      </span>
+                    </div>
+                    <div
+                      style={{
+                        height: 8,
+                        borderRadius: 4,
+                        background: C.surfaceHov,
+                        overflow: "hidden"
+                      }}
+                    >
+                      <div
+                        style={{
+                          height: "100%",
+                          width: `${pct}%`,
+                          borderRadius: 4,
+                          background: pct >= 100 ? C.green : C.gold
+                        }}
+                      />
+                    </div>
+                    {pct >= 100 && (
+                      <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginTop: 4 }}>
+                        Målet nått!
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </Kort>
+        )}
+
+        {goals.length === 0 && child && familyId && (
           <div style={{ marginTop: 14 }}>
-            <Knapp title="Lös in skärmtid" onClick={() => setShowRedeem(true)} />
+            <Knapp
+              title="+ Nytt sparmål"
+              onClick={() => setShowCreateGoal(true)}
+              style="secondary"
+            />
           </div>
         )}
 
@@ -425,6 +614,30 @@ export function WalletScreen() {
             }}
           />
         )}
+
+        {showCash && child && (
+          <CashRedeemSheet
+            child={child}
+            balance={balance}
+            onClose={() => setShowCash(false)}
+            onRedeemed={() => {
+              setShowCash(false);
+              void reload();
+            }}
+          />
+        )}
+
+        {showCreateGoal && child && familyId && (
+          <CreateSavingsGoalSheet
+            familyId={familyId}
+            childId={child.id}
+            onClose={() => setShowCreateGoal(false)}
+            onSaved={() => {
+              setShowCreateGoal(false);
+              void reload();
+            }}
+          />
+        )}
       </div>
     </ScreenContainer>
   );
@@ -435,11 +648,15 @@ function reasonLabel(reason: string): string {
     case "mission_approved":
       return "Godkänt uppdrag";
     case "redemption":
-      return "Inlöst skärmtid";
+      return "Begäran (skärm/pengar)";
     case "adjustment":
       return "Justering";
     case "refund":
       return "Återbetalning";
+    case "savings_deposit":
+      return "Sparat till mål";
+    case "savings_withdraw":
+      return "Uttag från mål";
     default:
       return reason;
   }
