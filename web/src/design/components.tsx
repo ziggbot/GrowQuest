@@ -2,13 +2,12 @@ import type { CSSProperties, ReactNode } from "react";
 import { C, CK } from "./tokens";
 
 // Jungle background — fixed, covers the viewport, with a soft cream overlay
-// to ensure text/cards stay readable on top. Drop the source image at
-// web/public/jungle-bg.png (PNG with the painted jungle scene).
+// to ensure text/cards stay readable on top.
 const JUNGLE_BG_STYLE: CSSProperties = {
   minHeight: "100dvh",
   background: `
     linear-gradient(180deg, rgba(207,233,247,0.30) 0%, rgba(255,244,220,0.35) 60%, rgba(255,244,220,0.55) 100%),
-    url('/jungle-bg.png') center/cover no-repeat fixed,
+    url('/images/jungle-bg.png') center/cover no-repeat fixed,
     ${C.bg}
   `,
   padding: "max(env(safe-area-inset-top), 12px) 12px max(env(safe-area-inset-bottom), 12px)",

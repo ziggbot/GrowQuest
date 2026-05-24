@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icon.svg", "favicon.svg", "jungle-bg.png"],
+      includeAssets: ["icon.svg", "favicon.svg"],
       manifest: {
         name: "GrowQuest",
         short_name: "GrowQuest",
@@ -24,7 +24,7 @@ export default defineConfig({
         ]
       },
       workbox: {
-        globPatterns: ["**/*.{js,css,html,svg,ico,png,woff2}"],
+        globPatterns: ["**/*.{js,css,html,svg,ico,woff2}"],
         navigateFallback: "/index.html",
         runtimeCaching: [
           {
