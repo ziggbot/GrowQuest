@@ -6,6 +6,7 @@ import type { ChildProfile, Mission, MissionSubmission } from "../lib/types";
 import { CK } from "../design/tokens";
 import { KortKid, PillKid } from "../design/components";
 import { MissionHistorySheet } from "./MissionHistorySheet";
+import { JumperAnimation, CoinRain } from "../design/lottie";
 
 export function ChildView({
   child,
@@ -24,6 +25,7 @@ export function ChildView({
   const [showHistory, setShowHistory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [showCoinRain, setShowCoinRain] = useState(false);
 
   async function reload() {
     setLoading(true);
@@ -102,6 +104,36 @@ export function ChildView({
     void reload();
   }, [child.id]);
 
+  // Realtime: rain coins over the screen the moment a submission for this
+  // child flips to "approved". Only run in actual child mode so parents
+  // previewing the view don't get a popcorn cannon every time.
+  useEffect(() => {
+    if (isParentPreview) return;
+    const channel = supabase
+      .channel(`coinrain-${child.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "mission_submissions",
+          filter: `child_id=eq.${child.id}`
+        },
+        (payload) => {
+          const next = payload.new as { status?: string } | null;
+          const prev = payload.old as { status?: string } | null;
+          if (next?.status === "approved" && prev?.status !== "approved") {
+            setShowCoinRain(true);
+            void reload();
+          }
+        }
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [child.id, isParentPreview]);
+
   const content = (
     <div style={{ display: "grid", gap: 16 }}>
       <button
@@ -122,16 +154,21 @@ export function ChildView({
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <div
               style={{
-                width: 56,
-                height: 56,
+                width: 72,
+                height: 72,
                 borderRadius: "50%",
                 background: CK.accentFade,
                 display: "grid",
                 placeItems: "center",
-                fontSize: 32
+                fontSize: 32,
+                overflow: "hidden"
               }}
             >
-              {child.avatar_emoji}
+              {child.gender ? (
+                <JumperAnimation gender={child.gender} size={72} />
+              ) : (
+                child.avatar_emoji
+              )}
             </div>
             <div style={{ flex: 1, textAlign: "left" }}>
               <div style={{ color: CK.muted, fontSize: 12, fontWeight: 600, letterSpacing: 0.4 }}>
@@ -316,6 +353,8 @@ export function ChildView({
           onClose={() => setShowHistory(false)}
         />
       )}
+
+      {showCoinRain && <CoinRain onDone={() => setShowCoinRain(false)} />}
     </div>
   );
 

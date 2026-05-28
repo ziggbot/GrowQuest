@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { ChildProfile, AgeBand } from "../lib/types";
+import type { ChildProfile, AgeBand, Gender } from "../lib/types";
 import { AVATARER } from "../lib/profiler";
 import { C } from "../design/tokens";
 import { Kort, Knapp, Input } from "../design/components";
@@ -22,6 +22,7 @@ export function AddChildSheet({
   const [nickname, setNickname] = useState(editing?.nickname ?? "");
   const [avatar, setAvatar] = useState<string>(editing?.avatar_emoji ?? AVATARER[0]);
   const [ageBand, setAgeBand] = useState<AgeBand>(editing?.age_band ?? "7-9");
+  const [gender, setGender] = useState<Gender | null>(editing?.gender ?? null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -37,7 +38,8 @@ export function AddChildSheet({
         family_id: familyId,
         nickname: nickname.trim(),
         avatar_emoji: avatar,
-        age_band: ageBand
+        age_band: ageBand,
+        gender
       };
       const { data, error } = isEditing
         ? await supabase
@@ -110,6 +112,37 @@ export function AddChildSheet({
                 {b}
               </button>
             ))}
+          </div>
+        </Kort>
+
+        <Kort>
+          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>
+            Karaktärsanimation
+          </label>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 6 }}>
+            {([
+              { value: null, label: "Ingen" },
+              { value: "boy" as const, label: "Kille" },
+              { value: "girl" as const, label: "Tjej" }
+            ]).map((opt) => {
+              const isOn = gender === opt.value;
+              return (
+                <button
+                  key={opt.label}
+                  onClick={() => setGender(opt.value)}
+                  style={{
+                    padding: "10px 8px",
+                    background: isOn ? `${C.gold}22` : C.surfaceHov,
+                    border: `${isOn ? 2 : 1}px solid ${isOn ? C.gold : C.border}`,
+                    borderRadius: 10,
+                    cursor: "pointer",
+                    color: C.text
+                  }}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
           </div>
         </Kort>
 

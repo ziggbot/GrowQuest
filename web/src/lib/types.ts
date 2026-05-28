@@ -22,12 +22,15 @@ export interface ProfileConfig {
 
 export type AgeBand = "4-6" | "7-9" | "10-12" | "13+";
 
+export type Gender = "boy" | "girl";
+
 export interface ChildProfile {
   id: string;
   family_id: string;
   nickname: string;
   avatar_emoji: string;
   age_band: AgeBand | null;
+  gender: Gender | null;
   global_leaderboard_opt_in: boolean;
 }
 
