@@ -418,47 +418,18 @@ export function WalletScreen() {
           </div>
         </Kort>
 
-        <div
-          style={{
-            margin: "14px 0 0",
-            borderRadius: 18,
-            border: `1px solid ${stadium.accentFärg}55`,
-            overflow: "hidden",
-            position: "relative",
-            background: `linear-gradient(180deg, ${stadium.himmel[0]}, ${stadium.himmel[1]})`,
-            height: 140
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 28,
-              background: stadium.mark,
-              borderRadius: "50% 50% 0 0 / 30px 30px 0 0"
-            }}
-          />
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: 40,
-              textAlign: "center",
-              padding: "0 16px"
-            }}
-          >
-            <div style={{ color: stadium.accentFärg, fontWeight: 700, fontSize: 16 }}>{stadium.namn}</div>
-            <div style={{ color: C.text, fontSize: 11, marginTop: 2 }}>{stadium.beskrivning}</div>
-            <div style={{ color: C.muted, fontSize: 10, marginTop: 4 }}>
-              {next
-                ? `Nästa nivå om ${Math.max(0, next.threshold - approved)} godkända uppdrag`
-                : "🎉 Toppnivå nådd!"}
+        <Kort style={{ marginTop: 14, padding: 16 }}>
+          <div style={{ display: "grid", placeItems: "center" }}>
+            <JumperAnimation
+              gender={child?.gender ?? "girl"}
+              size={180}
+              fallback={child?.avatar_emoji ?? "🧒"}
+            />
+            <div style={{ color: C.muted, fontSize: 12, marginTop: 8 }}>
+              {approved} godkända uppdrag totalt
             </div>
           </div>
-        </div>
+        </Kort>
 
         {active && (
           <Kort style={{ marginTop: 14 }}>
