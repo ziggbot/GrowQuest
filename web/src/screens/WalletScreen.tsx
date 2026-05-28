@@ -25,6 +25,7 @@ import {
 import { RedeemSheet } from "./RedeemSheet";
 import { CashRedeemSheet } from "./CashRedeemSheet";
 import { CreateSavingsGoalSheet } from "./CreateSavingsGoalSheet";
+import { JumperAnimation } from "../design/lottie";
 
 export function WalletScreen() {
   const { familyId, childId: deviceChildId } = useSession();
@@ -191,53 +192,19 @@ export function WalletScreen() {
             <div style={{ color: CK.muted, fontSize: 12, marginTop: 2 }}>Saldo</div>
           </KortKid>
 
-          {/* Character stage card */}
-          <div
-            style={{
-              marginTop: 14,
-              borderRadius: 22,
-              border: `1px solid ${stadium.accentFärg}44`,
-              overflow: "hidden",
-              position: "relative",
-              background: `linear-gradient(180deg, ${stadium.himmel[0]}, ${stadium.himmel[1]})`,
-              height: 150,
-              boxShadow: CK.shadow
-            }}
-          >
-            <div
-              style={{
-                position: "absolute",
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 32,
-                background: stadium.mark,
-                borderRadius: "50% 50% 0 0 / 32px 32px 0 0"
-              }}
-            />
-            <div
-              style={{
-                position: "absolute",
-                left: 0,
-                right: 0,
-                bottom: 44,
-                textAlign: "center",
-                padding: "0 16px"
-              }}
-            >
-              <div style={{ color: stadium.accentFärg, fontWeight: 800, fontSize: 17 }}>
-                {stadium.namn}
-              </div>
-              <div style={{ color: "#ffffff", fontSize: 11, marginTop: 2, opacity: 0.95 }}>
-                {stadium.beskrivning}
-              </div>
-              <div style={{ color: "rgba(255,255,255,0.85)", fontSize: 10, marginTop: 4 }}>
-                {next
-                  ? `Nästa nivå om ${Math.max(0, next.threshold - approved)} godkända uppdrag`
-                  : "🎉 Toppnivå nådd!"}
+          {/* Animated character — replaces the old stadium stage. */}
+          <KortKid style={{ marginTop: 14, padding: 16 }}>
+            <div style={{ display: "grid", placeItems: "center" }}>
+              <JumperAnimation
+                gender={child?.gender ?? "girl"}
+                size={180}
+                fallback={child?.avatar_emoji ?? "🧒"}
+              />
+              <div style={{ color: CK.muted, fontSize: 12, marginTop: 8 }}>
+                {approved} godkända uppdrag totalt
               </div>
             </div>
-          </div>
+          </KortKid>
 
           {active && (
             <KortKid style={{ marginTop: 14 }}>

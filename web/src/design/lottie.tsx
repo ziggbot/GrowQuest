@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import Lottie from "lottie-react";
 import type { Gender } from "../lib/types";
 
@@ -14,6 +15,7 @@ const cache = new Map<string, unknown>();
 async function loadAnimation(src: string): Promise<unknown> {
   if (cache.has(src)) return cache.get(src)!;
   const res = await fetch(src);
+  if (!res.ok) throw new Error(`Lottie ${src} → HTTP ${res.status}`);
   const data = await res.json();
   cache.set(src, data);
   return data;
@@ -21,24 +23,43 @@ async function loadAnimation(src: string): Promise<unknown> {
 
 export function JumperAnimation({
   gender,
-  size = 96
+  size = 96,
+  fallback
 }: {
   gender: Gender;
   size?: number;
+  fallback?: ReactNode;
 }) {
   const [data, setData] = useState<unknown>(cache.get(SOURCES[gender]) ?? null);
+  const [failed, setFailed] = useState(false);
   useEffect(() => {
     let cancelled = false;
-    void loadAnimation(SOURCES[gender]).then((d) => {
-      if (!cancelled) setData(d);
-    });
+    loadAnimation(SOURCES[gender])
+      .then((d) => {
+        if (!cancelled) setData(d);
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [gender]);
 
-  if (!data) {
-    return <div style={{ width: size, height: size }} />;
+  if (!data || failed) {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          display: "grid",
+          placeItems: "center",
+          fontSize: Math.round(size * 0.5)
+        }}
+      >
+        {fallback}
+      </div>
+    );
   }
   return (
     <Lottie
@@ -54,13 +75,17 @@ export function CoinRain({ onDone }: { onDone: () => void }) {
   const [data, setData] = useState<unknown>(cache.get(COIN_RAIN_SRC) ?? null);
   useEffect(() => {
     let cancelled = false;
-    void loadAnimation(COIN_RAIN_SRC).then((d) => {
-      if (!cancelled) setData(d);
-    });
+    loadAnimation(COIN_RAIN_SRC)
+      .then((d) => {
+        if (!cancelled) setData(d);
+      })
+      .catch(() => {
+        if (!cancelled) onDone();
+      });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [onDone]);
 
   if (!data) return null;
 

@@ -104,11 +104,30 @@ export function ChildView({
     void reload();
   }, [child.id]);
 
-  // Realtime: rain coins over the screen the moment a submission for this
-  // child flips to "approved". Only run in actual child mode so parents
-  // previewing the view don't get a popcorn cannon every time.
+  // Coin rain trigger — both realtime (live approval while child is on the
+  // screen) and a catch-up on mount (parent approved while child was away).
+  // Only runs in actual child mode so the parent's preview tab stays quiet.
   useEffect(() => {
     if (isParentPreview) return;
+    const lastSeenKey = `growquest:approvalSeen:${child.id}`;
+    const lastSeenRaw = localStorage.getItem(lastSeenKey);
+    const lastSeen = lastSeenRaw ? new Date(lastSeenRaw) : new Date(0);
+
+    void (async () => {
+      const { data } = await supabase
+        .from("mission_submissions")
+        .select("id, reviewed_at")
+        .eq("child_id", child.id)
+        .eq("status", "approved")
+        .order("reviewed_at", { ascending: false })
+        .limit(1);
+      const newest = (data ?? [])[0] as { reviewed_at: string | null } | undefined;
+      if (newest?.reviewed_at && new Date(newest.reviewed_at) > lastSeen) {
+        setShowCoinRain(true);
+        localStorage.setItem(lastSeenKey, newest.reviewed_at);
+      }
+    })();
+
     const channel = supabase
       .channel(`coinrain-${child.id}`)
       .on(
@@ -120,9 +139,10 @@ export function ChildView({
           filter: `child_id=eq.${child.id}`
         },
         (payload) => {
-          const next = payload.new as { status?: string } | null;
+          const next = payload.new as { status?: string; reviewed_at?: string | null } | null;
           const prev = payload.old as { status?: string } | null;
           if (next?.status === "approved" && prev?.status !== "approved") {
+            if (next.reviewed_at) localStorage.setItem(lastSeenKey, next.reviewed_at);
             setShowCoinRain(true);
             void reload();
           }
@@ -160,15 +180,14 @@ export function ChildView({
                 background: CK.accentFade,
                 display: "grid",
                 placeItems: "center",
-                fontSize: 32,
                 overflow: "hidden"
               }}
             >
-              {child.gender ? (
-                <JumperAnimation gender={child.gender} size={72} />
-              ) : (
-                child.avatar_emoji
-              )}
+              <JumperAnimation
+                gender={child.gender ?? "girl"}
+                size={72}
+                fallback={child.avatar_emoji}
+              />
             </div>
             <div style={{ flex: 1, textAlign: "left" }}>
               <div style={{ color: CK.muted, fontSize: 12, fontWeight: 600, letterSpacing: 0.4 }}>
