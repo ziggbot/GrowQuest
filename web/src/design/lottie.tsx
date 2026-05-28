@@ -2,11 +2,7 @@ import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import Lottie from "lottie-react";
 import type { Gender } from "../lib/types";
-
-const SOURCES: Record<Gender, string> = {
-  boy: "/animations/boy_jump_icon_lottie_under50kb.json",
-  girl: "/animations/girl_jump_icon_lottie_under50kb.json"
-};
+import { AdventureBoy, AdventureGirl } from "./AdventureCharacter";
 
 const COIN_RAIN_SRC = "/animations/coin_rain_win_lottie.json";
 
@@ -21,54 +17,23 @@ async function loadAnimation(src: string): Promise<unknown> {
   return data;
 }
 
+// The Lottie files turned out to render as a flat coloured rectangle on
+// device (the AI-generated source only had a background shape laid out
+// at full canvas size). Until proper character Lotties are available we
+// route everything through the hand-drawn SVG characters in
+// AdventureCharacter.tsx — they animate via CSS and look the same on
+// every browser.
 export function JumperAnimation({
   gender,
   size = 96,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   fallback
 }: {
   gender: Gender;
   size?: number;
   fallback?: ReactNode;
 }) {
-  const [data, setData] = useState<unknown>(cache.get(SOURCES[gender]) ?? null);
-  const [failed, setFailed] = useState(false);
-  useEffect(() => {
-    let cancelled = false;
-    loadAnimation(SOURCES[gender])
-      .then((d) => {
-        if (!cancelled) setData(d);
-      })
-      .catch(() => {
-        if (!cancelled) setFailed(true);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [gender]);
-
-  if (!data || failed) {
-    return (
-      <div
-        style={{
-          width: size,
-          height: size,
-          display: "grid",
-          placeItems: "center",
-          fontSize: Math.round(size * 0.5)
-        }}
-      >
-        {fallback}
-      </div>
-    );
-  }
-  return (
-    <Lottie
-      animationData={data}
-      loop
-      autoplay
-      style={{ width: size, height: size }}
-    />
-  );
+  return gender === "boy" ? <AdventureBoy size={size} /> : <AdventureGirl size={size} />;
 }
 
 export function CoinRain({ onDone }: { onDone: () => void }) {
