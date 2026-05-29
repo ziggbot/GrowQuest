@@ -12,6 +12,7 @@ import { useSession } from "../lib/session";
 import { PROFILER } from "../lib/profiler";
 import { C } from "../design/tokens";
 import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
+import { playPop } from "../design/sounds";
 import { ProfilePickerScreen } from "./ProfilePickerScreen";
 import { CreateMissionSheet } from "./CreateMissionSheet";
 import { ChildView } from "./ChildView";
@@ -204,7 +205,10 @@ export function HomeScreen() {
               icon="👤"
               label="Förälder"
               isOn={perspective.kind === "parent"}
-              onClick={() => setPerspective({ kind: "parent" })}
+              onClick={() => {
+                playPop();
+                setPerspective({ kind: "parent" });
+              }}
             />
             {children.map((c) => (
               <Tab
@@ -212,7 +216,10 @@ export function HomeScreen() {
                 icon={c.avatar_emoji}
                 label={c.nickname}
                 isOn={perspective.kind === "child" && perspective.id === c.id}
-                onClick={() => setPerspective({ kind: "child", id: c.id })}
+                onClick={() => {
+                  playPop();
+                  setPerspective({ kind: "child", id: c.id });
+                }}
               />
             ))}
             {children.length === 0 && (

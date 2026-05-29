@@ -6,6 +6,7 @@ import type { ChildProfile } from "../lib/types";
 import { C } from "../design/tokens";
 import { Kort, Knapp, Input, ScreenContainer } from "../design/components";
 import { AddChildSheet } from "./AddChildSheet";
+import { getMuted, setMuted, playPop } from "../design/sounds";
 
 export function SettingsScreen() {
   const nav = useNavigate();
@@ -141,6 +142,9 @@ export function SettingsScreen() {
           </div>
         </Kort>
 
+        {/* Sounds */}
+        <SoundsCard />
+
         {/* Password */}
         <PasswordCard email={user?.email ?? null} />
 
@@ -252,6 +256,47 @@ function ChildRow({
         </div>
       </div>
     </div>
+  );
+}
+
+function SoundsCard() {
+  const [muted, setMutedState] = useState(getMuted());
+  return (
+    <Kort>
+      <h3 style={{ margin: "0 0 8px", color: C.text }}>Ljud</h3>
+      <div
+        role="button"
+        onClick={() => {
+          const next = !muted;
+          setMuted(next);
+          setMutedState(next);
+          if (!next) playPop();
+        }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "8px 10px",
+          background: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: 10,
+          cursor: "pointer"
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={!muted}
+          readOnly
+          style={{ width: 18, height: 18, accentColor: C.gold, margin: 0 }}
+        />
+        <div style={{ flex: 1 }}>
+          <div style={{ color: C.text, fontSize: 13, fontWeight: 600 }}>Ljudeffekter</div>
+          <div style={{ color: C.muted, fontSize: 11 }}>
+            Mynt-klink vid godkända uppdrag, klick-pop när du växlar flik.
+          </div>
+        </div>
+      </div>
+    </Kort>
   );
 }
 

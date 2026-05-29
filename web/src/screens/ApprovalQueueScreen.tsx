@@ -5,6 +5,7 @@ import { useSession } from "../lib/session";
 import type { MissionSubmission, Mission, ChildProfile } from "../lib/types";
 import { C } from "../design/tokens";
 import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
+import { playPop, playReject } from "../design/sounds";
 
 interface QueueItem {
   submission: MissionSubmission;
@@ -71,6 +72,8 @@ export function ApprovalQueueScreen() {
         p_note: noteText.length > 0 ? noteText : null
       });
       if (error) throw error;
+      if (action === "approve") playPop();
+      else playReject();
       setItems((xs) => xs.filter((x) => x.submission.id !== item.submission.id));
       setNotes((n) => {
         const { [item.submission.id]: _drop, ...rest } = n;

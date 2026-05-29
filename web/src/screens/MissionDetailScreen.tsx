@@ -5,6 +5,7 @@ import { useSession } from "../lib/session";
 import type { Mission } from "../lib/types";
 import { tipsFor } from "../lib/tips";
 import { compressImageToDataUrl } from "../lib/image";
+import { playSubmit } from "../design/sounds";
 import { CK } from "../design/tokens";
 import { ChildScreenContainer, KortKid, KnappKid, PillKid } from "../design/components";
 
@@ -90,6 +91,7 @@ export function MissionDetailScreen() {
       ) {
         const retry = await supabase.from("mission_submissions").insert(baseRow);
         if (retry.error) throw retry.error;
+        playSubmit();
         setSubmitted(true);
         setErr(
           "Uppdraget är inskickat. Foto och kommentar kunde inte sparas — backend uppdateras inom kort, prova nästa gång."
@@ -98,6 +100,7 @@ export function MissionDetailScreen() {
       }
 
       if (error) throw error;
+      playSubmit();
       setSubmitted(true);
     } catch (e) {
       setErr((e as Error).message);

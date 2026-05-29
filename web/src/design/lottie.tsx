@@ -1,28 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo } from "react";
 import type { ReactNode } from "react";
-import Lottie from "lottie-react";
 import type { Gender } from "../lib/types";
 import { AdventureBoy, AdventureGirl } from "./AdventureCharacter";
+import { playWinChime } from "./sounds";
 
-const COIN_RAIN_SRC = "/animations/coin_rain_win_lottie.json";
-
-const cache = new Map<string, unknown>();
-
-async function loadAnimation(src: string): Promise<unknown> {
-  if (cache.has(src)) return cache.get(src)!;
-  const res = await fetch(src);
-  if (!res.ok) throw new Error(`Lottie ${src} → HTTP ${res.status}`);
-  const data = await res.json();
-  cache.set(src, data);
-  return data;
-}
-
-// The Lottie files turned out to render as a flat coloured rectangle on
-// device (the AI-generated source only had a background shape laid out
-// at full canvas size). Until proper character Lotties are available we
-// route everything through the hand-drawn SVG characters in
-// AdventureCharacter.tsx — they animate via CSS and look the same on
-// every browser.
+// The uploaded Lottie character files turned out to render as a flat
+// rectangle on iOS Safari (the source has a 256x256 background shape
+// as the first layer that obscures everything else). Until proper
+// character Lotties are available we route through hand-drawn SVG
+// characters in AdventureCharacter.tsx — they animate via CSS and look
+// the same on every browser.
 export function JumperAnimation({
   gender,
   size = 96,
@@ -36,23 +23,58 @@ export function JumperAnimation({
   return gender === "boy" ? <AdventureBoy size={size} /> : <AdventureGirl size={size} />;
 }
 
-export function CoinRain({ onDone }: { onDone: () => void }) {
-  const [data, setData] = useState<unknown>(cache.get(COIN_RAIN_SRC) ?? null);
-  useEffect(() => {
-    let cancelled = false;
-    loadAnimation(COIN_RAIN_SRC)
-      .then((d) => {
-        if (!cancelled) setData(d);
-      })
-      .catch(() => {
-        if (!cancelled) onDone();
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [onDone]);
+const COIN_RAIN_KEYFRAMES = `
+  @keyframes gq-coin-fall {
+    0% {
+      transform: translateY(-12vh) rotate(0deg);
+      opacity: 0;
+    }
+    8% {
+      opacity: 1;
+    }
+    92% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(112vh) rotate(720deg);
+      opacity: 0;
+    }
+  }
+`;
 
-  if (!data) return null;
+interface FallingCoin {
+  id: number;
+  left: number;
+  delay: number;
+  duration: number;
+  size: number;
+}
+
+// Full-screen coin shower built with CSS-animated emojis — no Lottie,
+// no asset downloads. Plays the win-chime sound the moment it mounts,
+// fires onDone after the longest coin has landed.
+export function CoinRain({ onDone }: { onDone: () => void }) {
+  const coins = useMemo<FallingCoin[]>(
+    () =>
+      Array.from({ length: 36 }, (_, i) => ({
+        id: i,
+        left: Math.random() * 100,
+        delay: Math.random() * 0.8,
+        duration: 1.8 + Math.random() * 1.4,
+        size: 28 + Math.random() * 26
+      })),
+    []
+  );
+  const totalMs = useMemo(
+    () => Math.max(...coins.map((c) => (c.delay + c.duration) * 1000)) + 100,
+    [coins]
+  );
+
+  useEffect(() => {
+    playWinChime();
+    const t = setTimeout(onDone, totalMs);
+    return () => clearTimeout(t);
+  }, [onDone, totalMs]);
 
   return (
     <div
@@ -61,17 +83,27 @@ export function CoinRain({ onDone }: { onDone: () => void }) {
         inset: 0,
         zIndex: 1000,
         pointerEvents: "none",
-        display: "grid",
-        placeItems: "center"
+        overflow: "hidden"
       }}
     >
-      <Lottie
-        animationData={data}
-        loop={false}
-        autoplay
-        onComplete={onDone}
-        style={{ width: "100%", height: "100%", maxWidth: 720, maxHeight: "100vh" }}
-      />
+      <style>{COIN_RAIN_KEYFRAMES}</style>
+      {coins.map((c) => (
+        <div
+          key={c.id}
+          style={{
+            position: "absolute",
+            top: 0,
+            left: `${c.left}%`,
+            fontSize: c.size,
+            animation: `gq-coin-fall ${c.duration}s linear ${c.delay}s 1 forwards`,
+            textShadow: "0 2px 6px rgba(0,0,0,0.25)",
+            willChange: "transform, opacity"
+          }}
+        >
+          🪙
+        </div>
+      ))}
     </div>
   );
 }
+
