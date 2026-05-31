@@ -46,6 +46,8 @@ export function WalletScreen() {
   const [showCreateGoal, setShowCreateGoal] = useState(false);
   const [goals, setGoals] = useState<(SavingsGoal & { saved: number })[]>([]);
   const [cashHistory, setCashHistory] = useState<Redemption[]>([]);
+  const [screenTimeHistory, setScreenTimeHistory] = useState<Redemption[]>([]);
+  const [showTransactions, setShowTransactions] = useState(false);
 
   async function reload() {
     if (!familyId || !childId) return;
@@ -109,16 +111,27 @@ export function WalletScreen() {
         setGoals([]);
       }
 
-      // Cash payout history — all approved cash redemptions, newest first.
-      const { data: cashData } = await supabase
-        .from("redemptions")
-        .select("*")
-        .eq("child_id", childId)
-        .eq("kind", "cash_payout")
-        .eq("status", "approved")
-        .order("reviewed_at", { ascending: false })
-        .limit(50);
-      setCashHistory((cashData ?? []) as Redemption[]);
+      // Cash + screen time exchange history — approved redemptions, newest first.
+      const [cashRes, stRes] = await Promise.all([
+        supabase
+          .from("redemptions")
+          .select("*")
+          .eq("child_id", childId)
+          .eq("kind", "cash_payout")
+          .eq("status", "approved")
+          .order("reviewed_at", { ascending: false })
+          .limit(50),
+        supabase
+          .from("redemptions")
+          .select("*")
+          .eq("child_id", childId)
+          .eq("kind", "screen_time_minutes")
+          .eq("status", "approved")
+          .order("reviewed_at", { ascending: false })
+          .limit(50)
+      ]);
+      setCashHistory((cashRes.data ?? []) as Redemption[]);
+      setScreenTimeHistory((stRes.data ?? []) as Redemption[]);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -468,11 +481,20 @@ export function WalletScreen() {
           <Kort style={{ marginTop: 14 }}>
             <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
               <h3 style={{ margin: 0, flex: 1 }}>Sparmål</h3>
-              <Knapp
-                title="+ Nytt mål"
+              <button
                 onClick={() => setShowCreateGoal(true)}
-                style="secondary"
-              />
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: C.gold,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontSize: 14,
+                  padding: 0
+                }}
+              >
+                + Nytt mål
+              </button>
             </div>
             <div style={{ display: "grid", gap: 10 }}>
               {goals.map((g) => {
@@ -516,13 +538,64 @@ export function WalletScreen() {
         )}
 
         {goals.length === 0 && child && familyId && (
-          <div style={{ marginTop: 14 }}>
-            <Knapp
-              title="+ Nytt sparmål"
+          <div style={{ marginTop: 10, textAlign: "right" }}>
+            <button
               onClick={() => setShowCreateGoal(true)}
-              style="secondary"
-            />
+              style={{
+                background: "none",
+                border: "none",
+                color: C.gold,
+                fontWeight: 700,
+                cursor: "pointer",
+                fontSize: 13,
+                padding: 0
+              }}
+            >
+              + Nytt sparmål
+            </button>
           </div>
+        )}
+
+        {screenTimeHistory.length > 0 && (
+          <Kort style={{ marginTop: 14 }}>
+            <div style={{ display: "flex", alignItems: "baseline", marginBottom: 8, gap: 8 }}>
+              <h3 style={{ margin: 0, flex: 1 }}>Växlat till skärmtid</h3>
+              <span style={{ color: C.purple, fontWeight: 800, fontSize: 16 }}>
+                {screenTimeHistory.reduce((s, r) => s + r.minutes, 0)} min
+              </span>
+            </div>
+            <div style={{ color: C.muted, fontSize: 11, marginBottom: 10 }}>
+              Totalt {screenTimeHistory.length} godkänd{screenTimeHistory.length === 1 ? "" : "a"} växling
+              {screenTimeHistory.length === 1 ? "" : "ar"}
+            </div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {screenTimeHistory.map((r) => (
+                <div
+                  key={r.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "6px 0",
+                    borderTop: `1px solid ${C.border}`
+                  }}
+                >
+                  <span style={{ flex: 1, fontSize: 13 }}>
+                    {new Date(r.reviewed_at ?? r.started_at).toLocaleDateString("sv-SE", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric"
+                    })}
+                  </span>
+                  <span style={{ color: C.purple, fontWeight: 700, fontSize: 14 }}>
+                    {r.minutes} min
+                  </span>
+                  <span style={{ color: C.muted, fontSize: 11, marginLeft: 8 }}>
+                    {r.mynt_cost} 🪙
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Kort>
         )}
 
         {cashHistory.length > 0 && (
@@ -565,25 +638,95 @@ export function WalletScreen() {
         )}
 
         <Kort style={{ marginTop: 14 }}>
-          <h3 style={{ margin: "0 0 8px" }}>Senaste transaktioner</h3>
-          {entries.length === 0 ? (
-            <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>Inga transaktioner än.</p>
-          ) : (
-            <div style={{ display: "grid", gap: 6 }}>
-              {entries.map((e) => (
-                <div key={e.id} style={{ display: "flex", alignItems: "center" }}>
-                  <span style={{ flex: 1 }}>{reasonLabel(e.reason)}</span>
-                  <span
-                    style={{
-                      fontWeight: 700,
-                      color: e.amount_mynt >= 0 ? C.green : C.red
-                    }}
-                  >
-                    {e.amount_mynt >= 0 ? "+" : ""}
-                    {e.amount_mynt} 🪙
-                  </span>
-                </div>
-              ))}
+          <button
+            onClick={() => setShowTransactions((v) => !v)}
+            style={{
+              width: "100%",
+              background: "none",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              color: C.text
+            }}
+          >
+            <h3 style={{ margin: 0, flex: 1, textAlign: "left" }}>Plånbokshändelser</h3>
+            <span
+              style={{
+                background: C.surfaceHov,
+                border: `1px solid ${C.border}`,
+                borderRadius: 999,
+                width: 28,
+                height: 28,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: C.gold,
+                fontWeight: 800,
+                fontSize: 16,
+                lineHeight: 1
+              }}
+              aria-label={showTransactions ? "Dölj" : "Visa"}
+            >
+              {showTransactions ? "−" : "+"}
+            </span>
+          </button>
+          {showTransactions && (
+            <div style={{ marginTop: 12 }}>
+              {entries.length === 0 ? (
+                <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>Inga händelser än.</p>
+              ) : (
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ color: C.muted, fontSize: 11, textAlign: "left" }}>
+                      <th style={{ padding: "6px 0", fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>
+                        Datum
+                      </th>
+                      <th style={{ padding: "6px 0", fontWeight: 700, borderBottom: `1px solid ${C.border}` }}>
+                        Typ
+                      </th>
+                      <th
+                        style={{
+                          padding: "6px 0",
+                          fontWeight: 700,
+                          borderBottom: `1px solid ${C.border}`,
+                          textAlign: "right"
+                        }}
+                      >
+                        Belopp
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.map((e) => (
+                      <tr key={e.id}>
+                        <td style={{ padding: "6px 0", borderBottom: `1px solid ${C.border}`, color: C.muted, fontSize: 12 }}>
+                          {new Date(e.created_at).toLocaleDateString("sv-SE", {
+                            day: "numeric",
+                            month: "short"
+                          })}
+                        </td>
+                        <td style={{ padding: "6px 8px 6px 0", borderBottom: `1px solid ${C.border}` }}>
+                          {reasonLabel(e.reason)}
+                        </td>
+                        <td
+                          style={{
+                            padding: "6px 0",
+                            borderBottom: `1px solid ${C.border}`,
+                            textAlign: "right",
+                            fontWeight: 700,
+                            color: e.amount_mynt >= 0 ? C.green : C.red
+                          }}
+                        >
+                          {e.amount_mynt >= 0 ? "+" : ""}
+                          {e.amount_mynt} 🪙
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
         </Kort>
