@@ -59,7 +59,18 @@ export function RedeemSheet({
       if (error) throw error;
       onRedeemed();
     } catch (e) {
-      setErr((e as Error).message);
+      const msg = (e as Error).message;
+      // The RPC raises a Swedish "Dagens skärmtidsgräns…" message when
+      // the parent's daily limit would be exceeded. The older deploy may
+      // still emit the English "daily limit exceeded" string; translate
+      // it so the kid sees a clear note either way.
+      if (/daily limit exceeded|skärmtidsgräns/i.test(msg)) {
+        setErr(
+          `Max-gränsen för daglig skärmtid (${dailyLimit} min) är nådd. Begäran avslås — försök igen i morgon.`
+        );
+      } else {
+        setErr(msg);
+      }
     } finally {
       setWorking(false);
     }
@@ -178,7 +189,16 @@ export function RedeemSheet({
           </div>
         </Kort>
 
-        {!fitsLimit && (
+        {leftToday <= 0 ? (
+          <Kort style={{ background: `${C.red}11`, border: `1px solid ${C.red}55` }}>
+            <p style={{ color: C.red, fontSize: 14, margin: 0, fontWeight: 700 }}>
+              🚫 Max-gränsen för daglig skärmtid ({dailyLimit} min) är nådd.
+            </p>
+            <p style={{ color: C.red, fontSize: 12, margin: "4px 0 0" }}>
+              Begäran avslås automatiskt. Försök igen i morgon.
+            </p>
+          </Kort>
+        ) : !fitsLimit && (
           <p style={{ color: C.red, fontSize: 13, margin: 0 }}>
             Den valda tiden överskrider dagens gräns.
           </p>

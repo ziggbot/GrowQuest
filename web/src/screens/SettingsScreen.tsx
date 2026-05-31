@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useSession } from "../lib/session";
-import type { ChildProfile } from "../lib/types";
+import type { ChildProfile, ProfileConfig } from "../lib/types";
 import { C } from "../design/tokens";
 import { Kort, Knapp, Input, ScreenContainer } from "../design/components";
 import { AddChildSheet } from "./AddChildSheet";
@@ -143,6 +143,9 @@ export function SettingsScreen() {
           </div>
         </Kort>
 
+        {/* Daily screen-time limit */}
+        {familyId && <DailyLimitCard familyId={familyId} />}
+
         {/* Sounds */}
         <SoundsCard />
 
@@ -259,6 +262,109 @@ function ChildRow({
     </div>
   );
 }
+
+function DailyLimitCard({ familyId }: { familyId: string }) {
+  const [config, setConfig] = useState<ProfileConfig | null>(null);
+  const [pending, setPending] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase
+        .from("profile_configs")
+        .select("*")
+        .eq("family_id", familyId)
+        .maybeSingle();
+      setConfig((data as ProfileConfig | null) ?? null);
+    })();
+  }, [familyId]);
+
+  async function save(nextMinutes: number) {
+    if (!config || pending) return;
+    setPending(true);
+    setErr(null);
+    setSaved(false);
+    const clamped = Math.max(0, Math.min(600, nextMinutes));
+    const prev = config.daily_limit_minutes;
+    setConfig({ ...config, daily_limit_minutes: clamped });
+    const { error } = await supabase
+      .from("profile_configs")
+      .update({ daily_limit_minutes: clamped })
+      .eq("family_id", familyId);
+    setPending(false);
+    if (error) {
+      setConfig({ ...config, daily_limit_minutes: prev });
+      setErr(error.message);
+    } else {
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 1200);
+    }
+  }
+
+  if (!config) {
+    return (
+      <Kort>
+        <h3 style={{ margin: "0 0 8px", color: C.text }}>Skärmtid per dag</h3>
+        <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>Laddar…</p>
+      </Kort>
+    );
+  }
+
+  const minutes = config.daily_limit_minutes;
+  return (
+    <Kort>
+      <h3 style={{ margin: "0 0 4px", color: C.text }}>Skärmtid per dag</h3>
+      <p style={{ color: C.muted, fontSize: 12, margin: "0 0 10px" }}>
+        Max-gräns för hur mycket skärmtid barnet kan låsa upp varje dygn.
+        Begäran som överskrider gränsen avslås automatiskt.
+      </p>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+        <button
+          onClick={() => void save(minutes - 15)}
+          disabled={pending || minutes <= 0}
+          style={stepBtn}
+        >
+          −15
+        </button>
+        <div
+          style={{
+            flex: 1,
+            textAlign: "center",
+            color: C.purple,
+            fontWeight: 800,
+            fontSize: 22
+          }}
+        >
+          {minutes} min
+        </div>
+        <button
+          onClick={() => void save(minutes + 15)}
+          disabled={pending || minutes >= 600}
+          style={stepBtn}
+        >
+          +15
+        </button>
+      </div>
+      <div style={{ color: C.muted, fontSize: 11, marginTop: 6, textAlign: "center" }}>
+        {saved ? "Sparat ✓" : `${(minutes / 60).toFixed(1)} timmar`}
+      </div>
+      {err && <p style={{ color: C.red, fontSize: 13, margin: "8px 0 0" }}>{err}</p>}
+    </Kort>
+  );
+}
+
+const stepBtn: React.CSSProperties = {
+  padding: "8px 14px",
+  background: C.surfaceHov,
+  border: `1px solid ${C.border}`,
+  borderRadius: 10,
+  color: C.text,
+  cursor: "pointer",
+  minWidth: 56,
+  fontSize: 14,
+  fontWeight: 700
+};
 
 function SoundsCard() {
   const [muted, setMutedState] = useState(getMuted());
