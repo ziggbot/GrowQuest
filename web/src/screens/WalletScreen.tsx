@@ -26,6 +26,7 @@ import { RedeemSheet } from "./RedeemSheet";
 import { CashRedeemSheet } from "./CashRedeemSheet";
 import { CreateSavingsGoalSheet } from "./CreateSavingsGoalSheet";
 import { JumperAnimation } from "../design/lottie";
+import { Avatar } from "../design/Avatar";
 
 export function WalletScreen() {
   const { familyId, childId: deviceChildId } = useSession();
@@ -437,7 +438,7 @@ export function WalletScreen() {
 
         <Kort>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 40, lineHeight: 1 }}>{child?.avatar_emoji}</div>
+            {child && <Avatar child={child} size={56} style={{ marginBottom: 4 }} />}
             <h2 style={{ margin: "8px 0 4px" }}>{child?.nickname}</h2>
             <div style={{ fontSize: 36, fontWeight: 800, color: C.gold }}>{balance} 🪙</div>
           </div>

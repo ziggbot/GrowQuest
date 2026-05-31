@@ -29,6 +29,7 @@ export interface ChildProfile {
   family_id: string;
   nickname: string;
   avatar_emoji: string;
+  avatar_photo: string | null;
   age_band: AgeBand | null;
   gender: Gender | null;
   global_leaderboard_opt_in: boolean;

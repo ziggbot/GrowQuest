@@ -5,6 +5,7 @@ import { useSession } from "../lib/session";
 import type { ChildProfile, ProfileConfig } from "../lib/types";
 import { C } from "../design/tokens";
 import { Kort, Knapp, Input, ScreenContainer } from "../design/components";
+import { Avatar } from "../design/Avatar";
 import { AddChildSheet } from "./AddChildSheet";
 import { getMuted, setMuted, playPop } from "../design/sounds";
 import { CoinRain } from "../design/lottie";
@@ -146,6 +147,9 @@ export function SettingsScreen() {
         {/* Daily screen-time limit */}
         {familyId && <DailyLimitCard familyId={familyId} />}
 
+        {/* Wallet adjustment */}
+        {children.length > 0 && <WalletAdjustCard children={children} />}
+
         {/* Sounds */}
         <SoundsCard />
 
@@ -208,7 +212,7 @@ function ChildRow({
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <span style={{ fontSize: 32 }}>{child.avatar_emoji}</span>
+        <Avatar child={child} size={42} />
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: 700, color: C.text, fontSize: 15 }}>{child.nickname}</div>
           <div style={{ color: C.muted, fontSize: 12 }}>{child.age_band ?? "—"}</div>
@@ -260,6 +264,156 @@ function ChildRow({
         </div>
       </div>
     </div>
+  );
+}
+
+function WalletAdjustCard({ children }: { children: ChildProfile[] }) {
+  const [childId, setChildId] = useState(children[0]?.id ?? "");
+  const [amount, setAmount] = useState(10);
+  const [direction, setDirection] = useState<"add" | "sub">("add");
+  const [working, setWorking] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function apply() {
+    if (!childId || amount < 1 || working) return;
+    setWorking(true);
+    setErr(null);
+    setMsg(null);
+    const signed = direction === "add" ? amount : -amount;
+    const { error } = await supabase.rpc("adjust_balance", {
+      p_child_id: childId,
+      p_amount: signed
+    });
+    setWorking(false);
+    if (error) {
+      setErr(error.message);
+    } else {
+      const child = children.find((c) => c.id === childId);
+      setMsg(
+        direction === "add"
+          ? `+${amount} 🪙 tillagda till ${child?.nickname ?? "barnet"}.`
+          : `−${amount} 🪙 dragna från ${child?.nickname ?? "barnet"}.`
+      );
+    }
+  }
+
+  return (
+    <Kort>
+      <h3 style={{ margin: "0 0 4px", color: C.text }}>Korrigera plånbok</h3>
+      <p style={{ color: C.muted, fontSize: 12, margin: "0 0 10px" }}>
+        Lägg till eller dra bort mynt manuellt — t.ex. för bonus eller rättning.
+      </p>
+      <div style={{ display: "grid", gap: 10 }}>
+        <div>
+          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 4 }}>Barn</label>
+          <select
+            value={childId}
+            onChange={(e) => setChildId(e.target.value)}
+            style={{
+              width: "100%",
+              padding: "10px 12px",
+              background: C.surface,
+              border: `1px solid ${C.border}`,
+              borderRadius: 10,
+              color: C.text,
+              fontSize: 14,
+              fontFamily: "inherit"
+            }}
+          >
+            {children.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.avatar_emoji} {c.nickname}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => setDirection("add")}
+            style={{
+              flex: 1,
+              padding: "10px 8px",
+              background: direction === "add" ? `${C.green}22` : C.surfaceHov,
+              border: `${direction === "add" ? 2 : 1}px solid ${
+                direction === "add" ? C.green : C.border
+              }`,
+              borderRadius: 10,
+              color: direction === "add" ? C.green : C.text,
+              fontWeight: 700,
+              cursor: "pointer"
+            }}
+          >
+            + Lägg till
+          </button>
+          <button
+            onClick={() => setDirection("sub")}
+            style={{
+              flex: 1,
+              padding: "10px 8px",
+              background: direction === "sub" ? `${C.red}22` : C.surfaceHov,
+              border: `${direction === "sub" ? 2 : 1}px solid ${
+                direction === "sub" ? C.red : C.border
+              }`,
+              borderRadius: 10,
+              color: direction === "sub" ? C.red : C.text,
+              fontWeight: 700,
+              cursor: "pointer"
+            }}
+          >
+            − Dra bort
+          </button>
+        </div>
+        <div>
+          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 4 }}>Antal mynt</label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              onClick={() => setAmount((a) => Math.max(1, a - 5))}
+              style={stepBtn}
+            >
+              −5
+            </button>
+            <input
+              type="number"
+              min={1}
+              value={amount}
+              onChange={(e) => setAmount(Math.max(1, parseInt(e.target.value) || 1))}
+              style={{
+                flex: 1,
+                padding: "8px 10px",
+                background: C.surface,
+                border: `1px solid ${C.border}`,
+                borderRadius: 10,
+                color: C.gold,
+                fontSize: 18,
+                fontWeight: 700,
+                textAlign: "center",
+                fontFamily: "inherit"
+              }}
+            />
+            <button
+              onClick={() => setAmount((a) => a + 5)}
+              style={stepBtn}
+            >
+              +5
+            </button>
+          </div>
+        </div>
+        <Knapp
+          title={
+            working
+              ? "Sparar…"
+              : direction === "add"
+              ? `Lägg till ${amount} 🪙`
+              : `Dra bort ${amount} 🪙`
+          }
+          onClick={apply}
+          disabled={working}
+        />
+        {msg && <p style={{ color: C.green, fontSize: 13, margin: 0 }}>{msg}</p>}
+        {err && <p style={{ color: C.red, fontSize: 13, margin: 0 }}>{err}</p>}
+      </div>
+    </Kort>
   );
 }
 

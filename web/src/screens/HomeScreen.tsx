@@ -12,6 +12,7 @@ import { useSession } from "../lib/session";
 import { PROFILER } from "../lib/profiler";
 import { C } from "../design/tokens";
 import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
+import { Avatar } from "../design/Avatar";
 import { playPop } from "../design/sounds";
 import { ProfilePickerScreen } from "./ProfilePickerScreen";
 import { CreateMissionSheet } from "./CreateMissionSheet";
@@ -235,7 +236,7 @@ export function HomeScreen() {
             {children.map((c) => (
               <Tab
                 key={c.id}
-                icon={c.avatar_emoji}
+                icon={<Avatar child={c} size={22} />}
                 label={c.nickname}
                 isOn={perspective.kind === "child" && perspective.id === c.id}
                 onClick={() => {
@@ -311,7 +312,7 @@ function Tab({
   isOn,
   onClick
 }: {
-  icon: string;
+  icon: React.ReactNode;
   label: string;
   isOn: boolean;
   onClick: () => void;
@@ -334,7 +335,7 @@ function Tab({
         gap: 6
       }}
     >
-      <span>{icon}</span>
+      {icon}
       <span>{label}</span>
     </button>
   );
@@ -495,7 +496,7 @@ function ParentDashboard({
                 gap: 10
               }}
             >
-              <span style={{ fontSize: 22 }}>{c.avatar_emoji}</span>
+              <Avatar child={c} size={22} />
               <span style={{ flex: 1, textAlign: "left" }}>{c.nickname}</span>
               <span style={{ color: C.muted }}>›</span>
             </button>
@@ -542,7 +543,7 @@ function ChildMissionGroup({
   return (
     <div style={{ display: "grid", gap: 6 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-        <span style={{ fontSize: 18 }}>{child.avatar_emoji}</span>
+        <Avatar child={child} size={20} />
         <span style={{ fontWeight: 700, color: C.text, fontSize: 14 }}>{child.nickname}</span>
       </div>
       {missions.map((m) => (

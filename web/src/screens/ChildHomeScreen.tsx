@@ -6,6 +6,7 @@ import type { ChildProfile } from "../lib/types";
 import { ChildView } from "./ChildView";
 import { CK } from "../design/tokens";
 import { ChildScreenContainer, KnappKid } from "../design/components";
+import { Avatar } from "../design/Avatar";
 
 export function ChildHomeScreen({ childId }: { childId: string }) {
   const { familyId, signOut } = useSession();
@@ -55,7 +56,7 @@ export function ChildHomeScreen({ childId }: { childId: string }) {
             gap: 10
           }}
         >
-          <span style={{ fontSize: 30 }}>{child.avatar_emoji}</span>
+          <Avatar child={child} size={36} />
           <div style={{ flex: 1 }}>
             <div style={{ fontWeight: 800, fontSize: 17, color: CK.text }}>
               Hej {child.nickname}!

@@ -6,6 +6,7 @@ import type { ChildProfile, Redemption } from "../lib/types";
 import { labelForApp } from "../lib/apps";
 import { C } from "../design/tokens";
 import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
+import { Avatar } from "../design/Avatar";
 
 interface QueueItem {
   redemption: Redemption;
@@ -107,7 +108,7 @@ export function ScreenTimeQueueScreen() {
           {items.map((it) => (
             <Kort key={it.redemption.id}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-                <span style={{ fontSize: 24 }}>{it.child.avatar_emoji}</span>
+                <Avatar child={it.child} size={30} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, color: C.muted }}>{it.child.nickname}</div>
                   <div style={{ fontWeight: 700 }}>

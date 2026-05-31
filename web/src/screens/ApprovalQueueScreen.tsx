@@ -5,6 +5,7 @@ import { useSession } from "../lib/session";
 import type { MissionSubmission, Mission, ChildProfile } from "../lib/types";
 import { C } from "../design/tokens";
 import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
+import { Avatar } from "../design/Avatar";
 import { playPop, playReject } from "../design/sounds";
 
 interface QueueItem {
@@ -109,7 +110,7 @@ export function ApprovalQueueScreen() {
           {items.map((it) => (
             <Kort key={it.submission.id}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-                <span style={{ fontSize: 24 }}>{it.child.avatar_emoji}</span>
+                <Avatar child={it.child} size={30} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 12, color: C.muted }}>{it.child.nickname}</div>
                   <div style={{ fontWeight: 600 }}>{it.mission.title}</div>

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { ChildProfile, AgeBand, Gender } from "../lib/types";
 import { AVATARER } from "../lib/profiler";
+import { compressImageToDataUrl } from "../lib/image";
 import { C } from "../design/tokens";
 import { Kort, Knapp, Input } from "../design/components";
 import { Sheet } from "./Sheet";
@@ -23,8 +24,11 @@ export function AddChildSheet({
   const [avatar, setAvatar] = useState<string>(editing?.avatar_emoji ?? AVATARER[0]);
   const [ageBand, setAgeBand] = useState<AgeBand>(editing?.age_band ?? "7-9");
   const [gender, setGender] = useState<Gender | null>(editing?.gender ?? null);
+  const [photoData, setPhotoData] = useState<string | null>(editing?.avatar_photo ?? null);
+  const [photoBusy, setPhotoBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isEditing = !!editing;
   const canSubmit = !saving && nickname.trim().length >= 1 && nickname.trim().length <= 30;
@@ -38,6 +42,7 @@ export function AddChildSheet({
         family_id: familyId,
         nickname: nickname.trim(),
         avatar_emoji: avatar,
+        avatar_photo: photoData,
         age_band: ageBand,
         gender
       };
@@ -72,7 +77,100 @@ export function AddChildSheet({
         </Kort>
 
         <Kort>
-          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>Avatar</label>
+          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>
+            Foto (frivilligt)
+          </label>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="user"
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              setPhotoBusy(true);
+              setErr(null);
+              try {
+                const data = await compressImageToDataUrl(file, 400, 0.78);
+                setPhotoData(data);
+              } catch (ex) {
+                setErr((ex as Error).message);
+              } finally {
+                setPhotoBusy(false);
+                if (fileInputRef.current) fileInputRef.current.value = "";
+              }
+            }}
+            style={{ display: "none" }}
+          />
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                width: 72,
+                height: 72,
+                borderRadius: "50%",
+                background: C.surfaceHov,
+                border: `1px solid ${C.border}`,
+                overflow: "hidden",
+                display: "grid",
+                placeItems: "center",
+                fontSize: 34,
+                flexShrink: 0
+              }}
+            >
+              {photoData ? (
+                <img
+                  src={photoData}
+                  alt="Förhandsvisning"
+                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                />
+              ) : (
+                avatar
+              )}
+            </div>
+            <div style={{ display: "grid", gap: 6, flex: 1 }}>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={photoBusy}
+                style={{
+                  padding: "8px 12px",
+                  background: C.gold,
+                  border: "none",
+                  borderRadius: 10,
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  cursor: "pointer"
+                }}
+              >
+                {photoBusy ? "Bearbetar…" : photoData ? "📷 Byt foto" : "📷 Ta/ladda upp foto"}
+              </button>
+              {photoData && (
+                <button
+                  type="button"
+                  onClick={() => setPhotoData(null)}
+                  style={{
+                    padding: "6px 12px",
+                    background: "transparent",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 10,
+                    color: C.muted,
+                    fontWeight: 700,
+                    fontSize: 12,
+                    cursor: "pointer"
+                  }}
+                >
+                  Ta bort foto
+                </button>
+              )}
+            </div>
+          </div>
+        </Kort>
+
+        <Kort>
+          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>
+            Symbol {photoData ? "(används som reserv)" : ""}
+          </label>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
             {AVATARER.map((e) => (
               <button
