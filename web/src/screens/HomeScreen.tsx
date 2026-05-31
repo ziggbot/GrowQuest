@@ -113,6 +113,28 @@ export function HomeScreen() {
     void reload();
   }, [familyId]);
 
+  // Realtime: bump the pending-request count the moment a child submits
+  // a new screen-time / cash redemption or one is reviewed.
+  useEffect(() => {
+    if (!familyId) return;
+    const channel = supabase
+      .channel(`redemptions-${familyId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "redemptions",
+          filter: `family_id=eq.${familyId}`
+        },
+        () => void reload()
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [familyId]);
+
   // Schedule a refresh at midnight so the date header and "today's missions"
   // roll over without the user having to reload.
   const [todayKey, setTodayKey] = useState(() => new Date().toDateString());
@@ -392,7 +414,7 @@ function ParentDashboard({
 
       <Kort>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-          <h3 style={{ margin: 0, flex: 1 }}>Skärmbegäran</h3>
+          <h3 style={{ margin: 0, flex: 1 }}>Begäran (skärm/pengar)</h3>
           {pendingRedemptionsCount > 0 && (
             <Pill text={String(pendingRedemptionsCount)} tint={C.purple} />
           )}
@@ -414,8 +436,8 @@ function ParentDashboard({
         >
           <span>
             {pendingRedemptionsCount > 0
-              ? `${pendingRedemptionsCount} barn väntar på skärmtid`
-              : "Inga öppna skärm-begäran"}
+              ? `${pendingRedemptionsCount} ny${pendingRedemptionsCount === 1 ? "" : "a"} begäran att granska`
+              : "Inga öppna begäran"}
           </span>
           <span style={{ color: C.muted }}>›</span>
         </button>

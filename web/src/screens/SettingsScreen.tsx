@@ -7,6 +7,7 @@ import { C } from "../design/tokens";
 import { Kort, Knapp, Input, ScreenContainer } from "../design/components";
 import { AddChildSheet } from "./AddChildSheet";
 import { getMuted, setMuted, playPop } from "../design/sounds";
+import { CoinRain } from "../design/lottie";
 
 export function SettingsScreen() {
   const nav = useNavigate();
@@ -261,6 +262,7 @@ function ChildRow({
 
 function SoundsCard() {
   const [muted, setMutedState] = useState(getMuted());
+  const [testRain, setTestRain] = useState(false);
   return (
     <Kort>
       <h3 style={{ margin: "0 0 8px", color: C.text }}>Ljud</h3>
@@ -296,6 +298,10 @@ function SoundsCard() {
           </div>
         </div>
       </div>
+      <div style={{ marginTop: 10 }}>
+        <Knapp title="🧪 Testa myntregn" onClick={() => setTestRain(true)} style="secondary" />
+      </div>
+      {testRain && <CoinRain onDone={() => setTestRain(false)} />}
     </Kort>
   );
 }

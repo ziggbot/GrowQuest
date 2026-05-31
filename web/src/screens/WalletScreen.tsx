@@ -45,6 +45,7 @@ export function WalletScreen() {
   const [showCash, setShowCash] = useState(false);
   const [showCreateGoal, setShowCreateGoal] = useState(false);
   const [goals, setGoals] = useState<(SavingsGoal & { saved: number })[]>([]);
+  const [cashHistory, setCashHistory] = useState<Redemption[]>([]);
 
   async function reload() {
     if (!familyId || !childId) return;
@@ -107,6 +108,17 @@ export function WalletScreen() {
       } else {
         setGoals([]);
       }
+
+      // Cash payout history — all approved cash redemptions, newest first.
+      const { data: cashData } = await supabase
+        .from("redemptions")
+        .select("*")
+        .eq("child_id", childId)
+        .eq("kind", "cash_payout")
+        .eq("status", "approved")
+        .order("reviewed_at", { ascending: false })
+        .limit(50);
+      setCashHistory((cashData ?? []) as Redemption[]);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -511,6 +523,45 @@ export function WalletScreen() {
               style="secondary"
             />
           </div>
+        )}
+
+        {cashHistory.length > 0 && (
+          <Kort style={{ marginTop: 14 }}>
+            <div style={{ display: "flex", alignItems: "baseline", marginBottom: 8, gap: 8 }}>
+              <h3 style={{ margin: 0, flex: 1 }}>Växlat till pengar</h3>
+              <span style={{ color: C.gold, fontWeight: 800, fontSize: 16 }}>
+                {cashHistory.reduce((s, r) => s + r.mynt_cost, 0)} 🪙
+              </span>
+            </div>
+            <div style={{ color: C.muted, fontSize: 11, marginBottom: 10 }}>
+              Totalt {cashHistory.length} godkänd{cashHistory.length === 1 ? "" : "a"} växling
+              {cashHistory.length === 1 ? "" : "ar"}
+            </div>
+            <div style={{ display: "grid", gap: 6 }}>
+              {cashHistory.map((r) => (
+                <div
+                  key={r.id}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    padding: "6px 0",
+                    borderTop: `1px solid ${C.border}`
+                  }}
+                >
+                  <span style={{ flex: 1, fontSize: 13 }}>
+                    {new Date(r.reviewed_at ?? r.started_at).toLocaleDateString("sv-SE", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric"
+                    })}
+                  </span>
+                  <span style={{ color: C.gold, fontWeight: 700, fontSize: 14 }}>
+                    {r.mynt_cost} 🪙
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Kort>
         )}
 
         <Kort style={{ marginTop: 14 }}>
