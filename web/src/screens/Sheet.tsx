@@ -32,7 +32,10 @@ export function Sheet({
           width: "100%",
           maxWidth: 480,
           maxHeight: "92vh",
-          background: `linear-gradient(180deg, #cfe9f7 0%, #fde7c4 55%, #fff4dc 100%)`,
+          background: `
+            linear-gradient(180deg, rgba(255,244,220,0.85) 0%, rgba(255,244,220,0.92) 100%),
+            url('/images/jungle-bg.png') center/cover no-repeat
+          `,
           borderTop: `1px solid ${C.border}`,
           borderTopLeftRadius: 22,
           borderTopRightRadius: 22,
