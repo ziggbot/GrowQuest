@@ -1,22 +1,43 @@
 import type { CSSProperties, ReactNode } from "react";
 import { C, CK } from "./tokens";
 
-// Jungle background — fixed, covers the viewport, with a soft cream overlay
-// to ensure text/cards stay readable on top.
-const JUNGLE_BG_STYLE: CSSProperties = {
-  minHeight: "100dvh",
-  background: `
+// Jungle background — rendered as a separate fixed-position layer so it
+// behaves identically on every screen. `background-attachment: fixed` is
+// known-broken on iOS Safari (the image either disappears or rescales to
+// each page's content height), which is why the parent and child views
+// were showing the image at different crops. A position:fixed sibling
+// layer dodges that bug entirely.
+const JUNGLE_BG_LAYER: CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  zIndex: 0,
+  pointerEvents: "none",
+  backgroundImage: `
     linear-gradient(180deg, rgba(207,233,247,0.30) 0%, rgba(255,244,220,0.35) 60%, rgba(255,244,220,0.55) 100%),
-    url('/images/jungle-bg.png') center/cover no-repeat fixed,
-    ${C.bg}
+    url('/images/jungle-bg.png')
   `,
+  backgroundSize: "cover",
+  backgroundPosition: "center",
+  backgroundRepeat: "no-repeat",
+  backgroundColor: C.bg
+};
+
+const JUNGLE_CONTENT: CSSProperties = {
+  position: "relative",
+  zIndex: 1,
+  minHeight: "100dvh",
   padding: "max(env(safe-area-inset-top), 12px) 12px max(env(safe-area-inset-bottom), 12px)",
   boxSizing: "border-box",
   color: C.text
 };
 
 export function JungleBackground({ children }: { children: ReactNode }) {
-  return <div style={JUNGLE_BG_STYLE}>{children}</div>;
+  return (
+    <>
+      <div style={JUNGLE_BG_LAYER} />
+      <div style={JUNGLE_CONTENT}>{children}</div>
+    </>
+  );
 }
 
 // Backwards-compatible aliases — every screen that imports either of these
