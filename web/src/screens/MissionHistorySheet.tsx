@@ -183,7 +183,7 @@ export function MissionHistorySheet({
           maxWidth: 480,
           maxHeight: "92vh",
           background: `
-            linear-gradient(180deg, rgba(255,244,220,0.85) 0%, rgba(255,244,220,0.92) 100%),
+            linear-gradient(180deg, rgba(207,233,247,0.30) 0%, rgba(255,244,220,0.35) 60%, rgba(255,244,220,0.55) 100%),
             url('/images/jungle-bg.png') center/cover no-repeat
           `,
           borderTopLeftRadius: 22,
