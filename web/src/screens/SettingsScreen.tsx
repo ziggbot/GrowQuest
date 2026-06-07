@@ -58,6 +58,7 @@ export function SettingsScreen() {
           maxWidth: 480,
           margin: "0 auto",
           display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr)",
           gap: 16,
           boxSizing: "border-box",
           minWidth: 0
@@ -325,6 +326,8 @@ function WalletAdjustCard({ children }: { children: ChildProfile[] }) {
               onChange={(e) => setAmount(Math.max(1, parseInt(e.target.value) || 1))}
               style={{
                 flex: 1,
+                minWidth: 0,
+                width: "100%",
                 padding: "8px 10px",
                 background: C.surface,
                 border: `1px solid ${C.border}`,
