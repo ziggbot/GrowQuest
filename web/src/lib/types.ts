@@ -44,6 +44,7 @@ export interface MissionTemplate {
   description: string | null;
   reward_mynt: number;
   recurrence: Recurrence;
+  age_band: AgeBand | null;
   created_at: string;
 }
 

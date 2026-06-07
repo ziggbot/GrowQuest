@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { ChildProfile, Mission, MissionTemplate as DbMissionTemplate, Recurrence } from "../lib/types";
+import type { AgeBand, ChildProfile, Mission, MissionTemplate as DbMissionTemplate, Recurrence } from "../lib/types";
 import {
   MISSION_TEMPLATES,
+  TEMPLATE_AGE_BANDS,
+  AGE_BAND_LABELS,
   estimateMissionReward,
   type MissionTemplate as BuiltInTemplate
 } from "../lib/templates";
@@ -54,6 +56,7 @@ export function CreateMissionSheet({
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const [assignedChildId, setAssignedChildId] = useState<string | null>(null);
   const [personalTemplates, setPersonalTemplates] = useState<DbMissionTemplate[]>([]);
+  const [ageBand, setAgeBand] = useState<AgeBand>("7-9");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -86,6 +89,24 @@ export function CreateMissionSheet({
   const selectedChild = useMemo(
     () => (assignedChildId ? children.find((c) => c.id === assignedChildId) ?? null : null),
     [children, assignedChildId]
+  );
+
+  // Auto-pick the age-band from the selected child, but only if that
+  // child's age fits one of the template buckets (skip "4-6").
+  useEffect(() => {
+    if (selectedChild?.age_band && TEMPLATE_AGE_BANDS.includes(selectedChild.age_band)) {
+      setAgeBand(selectedChild.age_band);
+    }
+  }, [selectedChild]);
+
+  const builtInsForAge = useMemo(
+    () => MISSION_TEMPLATES.filter((t) => t.ageBand === ageBand),
+    [ageBand]
+  );
+
+  const personalForAge = useMemo(
+    () => personalTemplates.filter((t) => (t.age_band ?? "7-9") === ageBand),
+    [personalTemplates, ageBand]
   );
 
   function applyBuiltIn(t: BuiltInTemplate) {
@@ -171,6 +192,7 @@ export function CreateMissionSheet({
             description: trimmedDesc,
             reward_mynt: reward,
             recurrence,
+            age_band: ageBand,
             created_by: userId
           })
           .select()
@@ -293,10 +315,24 @@ export function CreateMissionSheet({
 
         <Kort>
           <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>
-            Färdiga mallar
+            Färdiga mallar — välj åldersgrupp
           </label>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 12 }}>
+            {TEMPLATE_AGE_BANDS.map((band) => (
+              <button
+                key={band}
+                onClick={() => {
+                  setAgeBand(band);
+                  setPickedKey(null);
+                }}
+                style={pillStyle(ageBand === band)}
+              >
+                {AGE_BAND_LABELS[band]}
+              </button>
+            ))}
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
-            {MISSION_TEMPLATES.map((t) => {
+            {builtInsForAge.map((t) => {
               const isOn = pickedKey === `builtin:${t.id}`;
               return (
                 <button
@@ -313,13 +349,13 @@ export function CreateMissionSheet({
           </div>
         </Kort>
 
-        {personalTemplates.length > 0 && (
+        {personalForAge.length > 0 && (
           <Kort>
             <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>
-              Mina mallar
+              Mina mallar ({AGE_BAND_LABELS[ageBand]})
             </label>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
-              {personalTemplates.map((t) => {
+              {personalForAge.map((t) => {
                 const isOn = pickedKey === `personal:${t.id}`;
                 return (
                   <div key={t.id} style={{ position: "relative" }}>
