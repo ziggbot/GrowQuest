@@ -7,6 +7,7 @@ import { labelForApp } from "../lib/apps";
 import { C } from "../design/tokens";
 import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
 import { Avatar } from "../design/Avatar";
+import { BackButton } from "../design/BackButton";
 
 interface QueueItem {
   redemption: Redemption;
@@ -81,19 +82,10 @@ export function ScreenTimeQueueScreen() {
   return (
     <ScreenContainer>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
-        <button
-          onClick={() => nav("/")}
-          style={{
-            background: "none",
-            border: "none",
-            color: C.muted,
-            cursor: "pointer",
-            marginBottom: 8
-          }}
-        >
-          ‹ Tillbaka
-        </button>
-        <h2 style={{ margin: "0 0 12px" }}>Begäran</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <BackButton onClick={() => nav("/")} />
+          <h2 style={{ margin: 0 }}>Begäran</h2>
+        </div>
 
         {loading && <p style={{ color: C.muted, fontSize: 13 }}>Laddar…</p>}
         {!loading && items.length === 0 && (

@@ -6,6 +6,7 @@ import type { ChildProgress } from "../lib/types";
 import { currentStadium } from "../lib/karaktar";
 import { C } from "../design/tokens";
 import { Kort, ScreenContainer } from "../design/components";
+import { BackButton } from "../design/BackButton";
 
 export function LeaderboardScreen() {
   const { familyId } = useSession();
@@ -42,12 +43,9 @@ export function LeaderboardScreen() {
   return (
     <ScreenContainer>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
-        <button
-          onClick={() => nav("/")}
-          style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", marginBottom: 8 }}
-        >
-          ‹ Tillbaka
-        </button>
+        <div style={{ marginBottom: 12 }}>
+          <BackButton onClick={() => nav("/")} />
+        </div>
 
         <Kort>
           <div style={{ textAlign: "center" }}>

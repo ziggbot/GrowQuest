@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { C } from "../design/tokens";
+import { BackButton } from "../design/BackButton";
 
 export function Sheet({
   title,
@@ -47,14 +48,20 @@ export function Sheet({
           color: C.text
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 12 }}>
-          <h3 style={{ margin: 0, flex: 1, color: C.text }}>{title}</h3>
-          <button
-            onClick={onClose}
-            style={{ background: "none", border: "none", color: C.muted, fontSize: 22, cursor: "pointer" }}
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 12, gap: 10 }}>
+          <BackButton onClick={onClose} />
+          <h3
+            style={{
+              margin: 0,
+              flex: 1,
+              color: C.text,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap"
+            }}
           >
-            ✕
-          </button>
+            {title}
+          </h3>
         </div>
         {children}
       </div>

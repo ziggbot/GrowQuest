@@ -27,6 +27,7 @@ import { CashRedeemSheet } from "./CashRedeemSheet";
 import { CreateSavingsGoalSheet } from "./CreateSavingsGoalSheet";
 import { JumperAnimation } from "../design/lottie";
 import { Avatar } from "../design/Avatar";
+import { BackButton } from "../design/BackButton";
 
 export function WalletScreen() {
   const { familyId, childId: deviceChildId } = useSession();
@@ -168,23 +169,9 @@ export function WalletScreen() {
     return (
       <ChildScreenContainer>
         <div style={{ maxWidth: 480, margin: "0 auto" }}>
-          <button
-            onClick={() => nav("/")}
-            style={{
-              background: CK.surface,
-              border: `1px solid ${CK.border}`,
-              color: CK.text,
-              cursor: "pointer",
-              marginBottom: 12,
-              padding: "6px 12px",
-              borderRadius: 999,
-              fontSize: 13,
-              fontWeight: 600,
-              boxShadow: CK.shadowSoft
-            }}
-          >
-            ‹ Tillbaka
-          </button>
+          <div style={{ marginBottom: 12 }}>
+            <BackButton onClick={() => nav("/")} />
+          </div>
 
           {/* Balance hero */}
           <KortKid style={{ textAlign: "center", padding: "24px 16px" }}>
@@ -429,12 +416,9 @@ export function WalletScreen() {
   return (
     <ScreenContainer>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
-        <button
-          onClick={() => nav("/")}
-          style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", marginBottom: 8 }}
-        >
-          ‹ Tillbaka
-        </button>
+        <div style={{ marginBottom: 12 }}>
+          <BackButton onClick={() => nav("/")} />
+        </div>
 
         <Kort>
           <div style={{ textAlign: "center" }}>

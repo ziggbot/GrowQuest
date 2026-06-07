@@ -8,6 +8,7 @@ import { Kort, Knapp, Input, ScreenContainer } from "../design/components";
 import { Avatar } from "../design/Avatar";
 import { AddChildSheet } from "./AddChildSheet";
 import { Sheet } from "./Sheet";
+import { BackButton } from "../design/BackButton";
 import { getMuted, setMuted, playPop } from "../design/sounds";
 import { CoinRain } from "../design/lottie";
 
@@ -64,22 +65,7 @@ export function SettingsScreen() {
       >
         {/* Top bar */}
         <div style={{ display: "flex", alignItems: "center", padding: "4px 0 8px", gap: 12 }}>
-          <button
-            onClick={() => nav("/")}
-            style={{
-              background: C.surface,
-              border: `1px solid ${C.border}`,
-              borderRadius: 999,
-              padding: "8px 14px",
-              color: C.text,
-              cursor: "pointer",
-              fontSize: 14,
-              fontWeight: 600,
-              boxShadow: C.shadowSoft
-            }}
-          >
-            ‹ Tillbaka
-          </button>
+          <BackButton onClick={() => nav("/")} />
           <h2 style={{ margin: 0, flex: 1, color: C.text, fontSize: 20, fontWeight: 800 }}>
             Inställningar
           </h2>

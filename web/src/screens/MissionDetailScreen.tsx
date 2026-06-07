@@ -8,6 +8,7 @@ import { compressImageToDataUrl } from "../lib/image";
 import { playSubmit } from "../design/sounds";
 import { CK } from "../design/tokens";
 import { ChildScreenContainer, KortKid, KnappKid, PillKid } from "../design/components";
+import { BackButton } from "../design/BackButton";
 
 export function MissionDetailScreen() {
   const { childId, missionId } = useParams<{ childId: string; missionId: string }>();
@@ -131,23 +132,9 @@ export function MissionDetailScreen() {
   return (
     <ChildScreenContainer>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
-        <button
-          onClick={() => nav(-1)}
-          style={{
-            background: CK.surface,
-            border: `1px solid ${CK.border}`,
-            color: CK.text,
-            cursor: "pointer",
-            marginBottom: 12,
-            padding: "6px 12px",
-            borderRadius: 999,
-            fontSize: 13,
-            fontWeight: 600,
-            boxShadow: CK.shadowSoft
-          }}
-        >
-          ‹ Tillbaka
-        </button>
+        <div style={{ marginBottom: 12 }}>
+          <BackButton onClick={() => nav(-1)} />
+        </div>
 
         {/* Hero card — big emoji on a soft cyan halo, white card */}
         <KortKid style={{ textAlign: "center", padding: "28px 18px 24px", marginBottom: 14 }}>

@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import type { ChildProfile, Mission, SubmissionStatus } from "../lib/types";
 import { CK } from "../design/tokens";
 import { KortKid, PillKid } from "../design/components";
+import { BackButton } from "../design/BackButton";
 
 type HistoryStatus = SubmissionStatus | "missed";
 
@@ -196,22 +197,7 @@ export function MissionHistorySheet({
         }}
       >
         <div style={{ display: "flex", alignItems: "center", marginBottom: 14, gap: 10 }}>
-          <button
-            onClick={onClose}
-            style={{
-              background: CK.surface,
-              border: `1px solid ${CK.border}`,
-              color: CK.text,
-              cursor: "pointer",
-              padding: "6px 12px",
-              borderRadius: 999,
-              fontSize: 13,
-              fontWeight: 600,
-              boxShadow: CK.shadowSoft
-            }}
-          >
-            ‹ Tillbaka
-          </button>
+          <BackButton onClick={onClose} />
           <h3 style={{ margin: 0, flex: 1, color: CK.text, fontWeight: 800 }}>
             {child.avatar_emoji} Historik
           </h3>

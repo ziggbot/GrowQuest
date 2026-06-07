@@ -6,6 +6,7 @@ import type { MissionSubmission, Mission, ChildProfile } from "../lib/types";
 import { C } from "../design/tokens";
 import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
 import { Avatar } from "../design/Avatar";
+import { BackButton } from "../design/BackButton";
 import { playPop, playReject } from "../design/sounds";
 
 interface QueueItem {
@@ -89,13 +90,10 @@ export function ApprovalQueueScreen() {
   return (
     <ScreenContainer>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
-        <button
-          onClick={() => nav("/")}
-          style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", marginBottom: 8 }}
-        >
-          ‹ Tillbaka
-        </button>
-        <h2 style={{ margin: "0 0 12px" }}>Att granska</h2>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+          <BackButton onClick={() => nav("/")} />
+          <h2 style={{ margin: 0 }}>Att granska</h2>
+        </div>
 
         {loading && <p style={{ color: C.muted, fontSize: 13 }}>Laddar…</p>}
         {!loading && items.length === 0 && (
