@@ -187,31 +187,33 @@ export function HomeScreen() {
           }}
         >
           <div style={{ flex: 1 }}>
-            <div style={{ color: C.gold, fontWeight: 800, fontSize: 20 }}>GrowQuest</div>
-            <div style={{ color: C.muted, fontSize: 11 }}>{user?.email}</div>
+            <div
+              style={{
+                color: C.gold,
+                fontWeight: 900,
+                fontSize: 30,
+                letterSpacing: -0.5,
+                textShadow: "0 2px 4px rgba(0,0,0,0.15)"
+              }}
+            >
+              GrowQuest
+            </div>
           </div>
-          <button
-            onClick={signOut}
-            style={{ background: "none", border: "none", color: C.muted, cursor: "pointer", fontSize: 13 }}
-          >
-            Logga ut
-          </button>
           <button
             onClick={() => nav("/settings")}
             aria-label="Inställningar"
             title="Inställningar"
             style={{
-              background: C.surface,
-              border: `1px solid ${C.border}`,
+              background: "transparent",
+              border: "none",
               borderRadius: 999,
-              width: 36,
-              height: 36,
+              width: 40,
+              height: 40,
               padding: 0,
-              color: C.text,
+              color: C.gold,
               cursor: "pointer",
-              fontSize: 17,
+              fontSize: 26,
               lineHeight: 1,
-              boxShadow: C.shadowSoft,
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center"

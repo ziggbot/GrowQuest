@@ -12,7 +12,7 @@ import { CoinRain } from "../design/lottie";
 
 export function SettingsScreen() {
   const nav = useNavigate();
-  const { user, familyId } = useSession();
+  const { user, familyId, signOut } = useSession();
   const [children, setChildren] = useState<ChildProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -163,6 +163,26 @@ export function SettingsScreen() {
             GrowQuest · {user?.email}
           </p>
         </Kort>
+
+        {/* Sign out — last in the list */}
+        <div style={{ marginTop: 4 }}>
+          <button
+            onClick={signOut}
+            style={{
+              width: "100%",
+              background: "transparent",
+              border: `1px solid ${C.red}55`,
+              borderRadius: 12,
+              padding: "12px 16px",
+              color: C.red,
+              fontWeight: 700,
+              fontSize: 14,
+              cursor: "pointer"
+            }}
+          >
+            Logga ut
+          </button>
+        </div>
       </div>
 
       {showAdd && (
