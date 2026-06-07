@@ -9,6 +9,17 @@ import { Sheet } from "./Sheet";
 
 const AGE_BANDS: AgeBand[] = ["4-6", "7-9", "10-12", "13+"];
 
+const limitStepBtn: React.CSSProperties = {
+  padding: "8px 14px",
+  background: "rgba(255,255,255,0.7)",
+  border: "1px solid rgba(0,0,0,0.1)",
+  borderRadius: 10,
+  cursor: "pointer",
+  fontWeight: 700,
+  fontSize: 14,
+  minWidth: 56
+};
+
 export function AddChildSheet({
   familyId,
   editing,
@@ -26,6 +37,10 @@ export function AddChildSheet({
   const [gender, setGender] = useState<Gender | null>(editing?.gender ?? null);
   const [photoData, setPhotoData] = useState<string | null>(editing?.avatar_photo ?? null);
   const [photoBusy, setPhotoBusy] = useState(false);
+  const [optIn, setOptIn] = useState<boolean>(editing?.global_leaderboard_opt_in ?? false);
+  const [limitOverride, setLimitOverride] = useState<number | null>(
+    editing?.daily_limit_minutes_override ?? null
+  );
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -44,7 +59,9 @@ export function AddChildSheet({
         avatar_emoji: avatar,
         avatar_photo: photoData,
         age_band: ageBand,
-        gender
+        gender,
+        global_leaderboard_opt_in: optIn,
+        daily_limit_minutes_override: limitOverride
       };
       const { data, error } = isEditing
         ? await supabase
@@ -241,6 +258,94 @@ export function AddChildSheet({
                 </button>
               );
             })}
+          </div>
+        </Kort>
+
+        <Kort>
+          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>
+            Daglig skärmtidsgräns
+          </label>
+          <p style={{ color: C.muted, fontSize: 11, margin: "0 0 10px" }}>
+            Lämna tomt för att använda familjens gemensamma gräns.
+          </p>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button
+              onClick={() =>
+                setLimitOverride((v) => {
+                  const next = (v ?? 60) - 15;
+                  return Math.max(0, next);
+                })
+              }
+              disabled={limitOverride === null}
+              style={limitStepBtn}
+            >
+              −15
+            </button>
+            <div
+              style={{
+                flex: 1,
+                textAlign: "center",
+                color: limitOverride === null ? C.muted : C.purple,
+                fontWeight: 800,
+                fontSize: 18
+              }}
+            >
+              {limitOverride === null ? "Familjens gräns" : `${limitOverride} min`}
+            </div>
+            <button
+              onClick={() =>
+                setLimitOverride((v) => Math.min(600, (v ?? 60) + 15))
+              }
+              style={limitStepBtn}
+            >
+              +15
+            </button>
+          </div>
+          <div style={{ marginTop: 8, textAlign: "right" }}>
+            <button
+              onClick={() => setLimitOverride(limitOverride === null ? 60 : null)}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: C.gold,
+                cursor: "pointer",
+                fontSize: 12,
+                fontWeight: 700,
+                padding: 0
+              }}
+            >
+              {limitOverride === null ? "Ställ in egen gräns" : "Återgå till familjens gräns"}
+            </button>
+          </div>
+        </Kort>
+
+        <Kort>
+          <div
+            role="button"
+            onClick={() => setOptIn((v) => !v)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              padding: "4px 0",
+              cursor: "pointer"
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={optIn}
+              readOnly
+              style={{ width: 18, height: 18, accentColor: C.gold, margin: 0 }}
+            />
+            <div style={{ flex: 1 }}>
+              <div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>
+                Visa i global topplista
+              </div>
+              <div style={{ color: C.muted, fontSize: 11 }}>
+                Tillåt att {nickname.trim() || "barnets"} mynt syns på den globala
+                superäventyrar-listan.
+              </div>
+            </div>
           </div>
         </Kort>
 

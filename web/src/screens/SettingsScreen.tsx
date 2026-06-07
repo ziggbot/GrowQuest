@@ -7,6 +7,7 @@ import { C } from "../design/tokens";
 import { Kort, Knapp, Input, ScreenContainer } from "../design/components";
 import { Avatar } from "../design/Avatar";
 import { AddChildSheet } from "./AddChildSheet";
+import { Sheet } from "./Sheet";
 import { getMuted, setMuted, playPop } from "../design/sounds";
 import { CoinRain } from "../design/lottie";
 
@@ -40,48 +41,6 @@ export function SettingsScreen() {
     void reload();
   }, [familyId]);
 
-  async function toggleOptIn(child: ChildProfile, value: boolean) {
-    setErr(null);
-    // Optimistic update so the tick feels instant
-    setChildren((cs) =>
-      cs.map((c) => (c.id === child.id ? { ...c, global_leaderboard_opt_in: value } : c))
-    );
-    const { data, error } = await supabase
-      .from("child_profiles")
-      .update({ global_leaderboard_opt_in: value })
-      .eq("id", child.id)
-      .select("id, global_leaderboard_opt_in");
-    console.log("[Settings] toggleOptIn response:", {
-      requestedValue: value,
-      childId: child.id,
-      error,
-      data
-    });
-    if (error) {
-      console.error("toggleOptIn failed", error);
-      setErr(`Kunde inte spara: ${error.message}`);
-      void reload();
-      return;
-    }
-    if (!data || data.length === 0) {
-      console.error("toggleOptIn returned no rows", { childId: child.id });
-      setErr("Sparades inte (inga rader uppdaterade). Migrationen kanske inte är klar än.");
-      void reload();
-      return;
-    }
-    // Sync local state to the actual server value (so a silent server-side
-    // rewrite is visible, not papered over by the optimistic update).
-    const serverValue = data[0].global_leaderboard_opt_in;
-    setChildren((cs) =>
-      cs.map((c) => (c.id === child.id ? { ...c, global_leaderboard_opt_in: serverValue } : c))
-    );
-    if (serverValue !== value) {
-      setErr(
-        `Servern returnerade ${serverValue} fast vi skickade ${value}. Kolla console för detaljer.`
-      );
-    }
-  }
-
   if (!familyId) {
     return (
       <ScreenContainer>
@@ -92,7 +51,17 @@ export function SettingsScreen() {
 
   return (
     <ScreenContainer>
-      <div style={{ maxWidth: 480, margin: "0 auto", display: "grid", gap: 16 }}>
+      <div
+        style={{
+          width: "100%",
+          maxWidth: 480,
+          margin: "0 auto",
+          display: "grid",
+          gap: 16,
+          boxSizing: "border-box",
+          minWidth: 0
+        }}
+      >
         {/* Top bar */}
         <div style={{ display: "flex", alignItems: "center", padding: "4px 0 8px", gap: 12 }}>
           <button
@@ -134,7 +103,6 @@ export function SettingsScreen() {
                   key={c.id}
                   child={c}
                   onEdit={() => setEditing(c)}
-                  onToggleOptIn={(v) => void toggleOptIn(c, v)}
                 />
               ))}
             </div>
@@ -144,9 +112,6 @@ export function SettingsScreen() {
           </div>
         </Kort>
 
-        {/* Daily screen-time limit */}
-        {familyId && <DailyLimitCard familyId={familyId} />}
-
         {/* Wallet adjustment */}
         {children.length > 0 && <WalletAdjustCard children={children} />}
 
@@ -154,7 +119,7 @@ export function SettingsScreen() {
         <SoundsCard />
 
         {/* Password */}
-        <PasswordCard email={user?.email ?? null} />
+        <PasswordCardEntry email={user?.email ?? null} />
 
         {/* About */}
         <Kort>
@@ -211,15 +176,7 @@ export function SettingsScreen() {
   );
 }
 
-function ChildRow({
-  child,
-  onEdit,
-  onToggleOptIn
-}: {
-  child: ChildProfile;
-  onEdit: () => void;
-  onToggleOptIn: (value: boolean) => void;
-}) {
+function ChildRow({ child, onEdit }: { child: ChildProfile; onEdit: () => void }) {
   return (
     <div
       style={{
@@ -227,62 +184,44 @@ function ChildRow({
         border: `1px solid ${C.border}`,
         borderRadius: 14,
         padding: 12,
-        display: "grid",
-        gap: 10
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        boxSizing: "border-box",
+        width: "100%"
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <Avatar child={child} size={42} />
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, color: C.text, fontSize: 15 }}>{child.nickname}</div>
-          <div style={{ color: C.muted, fontSize: 12 }}>{child.age_band ?? "—"}</div>
-        </div>
-        <button
-          onClick={onEdit}
+      <Avatar child={child} size={42} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div
           style={{
-            background: C.surface,
-            border: `1px solid ${C.border}`,
-            borderRadius: 10,
-            padding: "6px 12px",
+            fontWeight: 700,
             color: C.text,
-            cursor: "pointer",
-            fontSize: 13,
-            fontWeight: 600
+            fontSize: 15,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap"
           }}
         >
-          Ändra
-        </button>
+          {child.nickname}
+        </div>
+        <div style={{ color: C.muted, fontSize: 12 }}>{child.age_band ?? "—"}</div>
       </div>
-
-      <div
-        role="button"
-        onClick={() => onToggleOptIn(!child.global_leaderboard_opt_in)}
+      <button
+        onClick={onEdit}
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "8px 10px",
-          background: C.surface,
-          border: `1px solid ${C.border}`,
+          background: C.gold,
+          border: "none",
           borderRadius: 10,
-          cursor: "pointer"
+          padding: "8px 14px",
+          color: "#fff",
+          cursor: "pointer",
+          fontSize: 13,
+          fontWeight: 700
         }}
       >
-        <input
-          type="checkbox"
-          checked={Boolean(child.global_leaderboard_opt_in)}
-          readOnly
-          style={{ width: 18, height: 18, accentColor: C.gold, margin: 0 }}
-        />
-        <div style={{ flex: 1 }}>
-          <div style={{ color: C.text, fontSize: 13, fontWeight: 600 }}>
-            Visa i global topplista
-          </div>
-          <div style={{ color: C.muted, fontSize: 11 }}>
-            Tillåt att {child.nickname}s mynt syns på den globala superäventyrar-listan.
-          </div>
-        </div>
-      </div>
+        Hantera
+      </button>
     </div>
   );
 }
@@ -586,74 +525,140 @@ function SoundsCard() {
   );
 }
 
-function PasswordCard({ email }: { email: string | null }) {
-  const [pw, setPw] = useState("");
+function PasswordCardEntry({ email }: { email: string | null }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <Kort>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ flex: 1 }}>
+            <h3 style={{ margin: 0, color: C.text }}>Mitt lösenord</h3>
+            {email && <div style={{ color: C.muted, fontSize: 12, marginTop: 2 }}>{email}</div>}
+          </div>
+          <button
+            onClick={() => setOpen(true)}
+            style={{
+              background: C.gold,
+              border: "none",
+              borderRadius: 10,
+              padding: "8px 14px",
+              color: "#fff",
+              cursor: "pointer",
+              fontSize: 13,
+              fontWeight: 700
+            }}
+          >
+            Byt lösenord
+          </button>
+        </div>
+      </Kort>
+      {open && email && (
+        <ChangePasswordSheet email={email} onClose={() => setOpen(false)} />
+      )}
+    </>
+  );
+}
+
+function ChangePasswordSheet({ email, onClose }: { email: string; onClose: () => void }) {
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
 
-  const canSubmit = !saving && pw.length >= 8 && pw === confirm;
-  const mismatch = pw.length > 0 && confirm.length > 0 && pw !== confirm;
+  const mismatch = newPw.length > 0 && confirm.length > 0 && newPw !== confirm;
+  const canSubmit =
+    !saving &&
+    currentPw.length >= 1 &&
+    newPw.length >= 8 &&
+    newPw === confirm &&
+    newPw !== currentPw;
 
-  async function changePassword() {
+  async function save() {
     if (!canSubmit) return;
     setSaving(true);
     setErr(null);
     setMsg(null);
-    const { error } = await supabase.auth.updateUser({ password: pw });
-    setSaving(false);
-    if (error) {
-      setErr(error.message);
-    } else {
-      setMsg("Lösenord uppdaterat.");
-      setPw("");
-      setConfirm("");
+    // Verify the current password by signing in with it. If it fails we
+    // bail before issuing the update. The signInWithPassword call refreshes
+    // the existing session, so we don't lose auth state on success.
+    const { error: signinErr } = await supabase.auth.signInWithPassword({
+      email,
+      password: currentPw
+    });
+    if (signinErr) {
+      setSaving(false);
+      setErr("Nuvarande lösenord stämmer inte.");
+      return;
     }
+    const { error: updErr } = await supabase.auth.updateUser({ password: newPw });
+    setSaving(false);
+    if (updErr) {
+      setErr(updErr.message);
+      return;
+    }
+    setMsg("Lösenordet är uppdaterat.");
+    setCurrentPw("");
+    setNewPw("");
+    setConfirm("");
+    window.setTimeout(onClose, 900);
   }
 
   return (
-    <Kort>
-      <h3 style={{ margin: "0 0 4px", color: C.text }}>Mitt lösenord</h3>
-      {email && (
-        <div style={{ color: C.muted, fontSize: 12, marginBottom: 12 }}>{email}</div>
-      )}
-      <div style={{ display: "grid", gap: 10 }}>
-        <div>
-          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 4 }}>
-            Nytt lösenord
-          </label>
-          <Input
-            type="password"
-            value={pw}
-            onChange={(e) => setPw(e.target.value)}
-            placeholder="Minst 8 tecken"
-            autoComplete="new-password"
-          />
-        </div>
-        <div>
-          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 4 }}>
-            Bekräfta lösenord
-          </label>
-          <Input
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            placeholder="Skriv igen"
-            autoComplete="new-password"
-          />
-        </div>
-        {mismatch && (
-          <p style={{ color: C.red, fontSize: 12, margin: 0 }}>Lösenorden matchar inte.</p>
-        )}
-        {err && <p style={{ color: C.red, fontSize: 13, margin: 0 }}>{err}</p>}
-        {msg && <p style={{ color: C.green, fontSize: 13, margin: 0 }}>{msg}</p>}
+    <Sheet title="Byt lösenord" onClose={onClose}>
+      <div style={{ display: "grid", gap: 12 }}>
+        <Kort>
+          <div style={{ display: "grid", gap: 10 }}>
+            <div>
+              <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 4 }}>
+                Nuvarande lösenord
+              </label>
+              <Input
+                type="password"
+                value={currentPw}
+                onChange={(e) => setCurrentPw(e.target.value)}
+                placeholder="Bekräfta att det är du"
+                autoComplete="current-password"
+              />
+            </div>
+            <div>
+              <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 4 }}>
+                Nytt lösenord
+              </label>
+              <Input
+                type="password"
+                value={newPw}
+                onChange={(e) => setNewPw(e.target.value)}
+                placeholder="Minst 8 tecken"
+                autoComplete="new-password"
+              />
+            </div>
+            <div>
+              <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 4 }}>
+                Bekräfta nytt lösenord
+              </label>
+              <Input
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="Skriv igen"
+                autoComplete="new-password"
+              />
+            </div>
+            {mismatch && (
+              <p style={{ color: C.red, fontSize: 12, margin: 0 }}>De nya lösenorden matchar inte.</p>
+            )}
+            {err && <p style={{ color: C.red, fontSize: 13, margin: 0 }}>{err}</p>}
+            {msg && <p style={{ color: C.green, fontSize: 13, margin: 0 }}>{msg}</p>}
+          </div>
+        </Kort>
         <Knapp
           title={saving ? "Sparar…" : "Byt lösenord"}
-          onClick={changePassword}
+          onClick={save}
           disabled={!canSubmit}
         />
       </div>
-    </Kort>
+    </Sheet>
   );
 }

@@ -33,6 +33,7 @@ export interface ChildProfile {
   age_band: AgeBand | null;
   gender: Gender | null;
   global_leaderboard_opt_in: boolean;
+  daily_limit_minutes_override: number | null;
 }
 
 export type Recurrence = "once" | "daily" | "weekly";
