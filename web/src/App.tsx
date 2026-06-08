@@ -10,6 +10,7 @@ import { LeaderboardScreen } from "./screens/LeaderboardScreen";
 import { MissionDetailScreen } from "./screens/MissionDetailScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { ResetPasswordScreen } from "./screens/ResetPasswordScreen";
+import { JoinScreen } from "./screens/JoinScreen";
 import { C } from "./design/tokens";
 
 export function App() {
@@ -23,36 +24,44 @@ export function App() {
     );
   }
 
-  // The recovery session is technically authenticated, but we hijack
-  // the UI to force a new password before the user can do anything else.
-  if (recovery && user) return <ResetPasswordScreen />;
-
-  if (!user) return <AuthScreen />;
-
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/"
-          element={childId ? <ChildHomeScreen childId={childId} /> : <HomeScreen />}
-        />
-        <Route path="/wallet/:childId" element={<WalletScreen />} />
-        <Route path="/leaderboard" element={<LeaderboardScreen />} />
-        <Route path="/child/:childId/mission/:missionId" element={<MissionDetailScreen />} />
-        {/* Parent-only routes — in child mode they redirect home. */}
-        <Route
-          path="/approve"
-          element={childId ? <Navigate to="/" replace /> : <ApprovalQueueScreen />}
-        />
-        <Route
-          path="/settings"
-          element={childId ? <Navigate to="/" replace /> : <SettingsScreen />}
-        />
-        <Route
-          path="/screentime"
-          element={childId ? <Navigate to="/" replace /> : <ScreenTimeQueueScreen />}
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Public — reachable without auth so kids can accept invites */}
+        <Route path="/join" element={<JoinScreen />} />
+
+        {recovery && user ? (
+          <Route path="*" element={<ResetPasswordScreen />} />
+        ) : !user ? (
+          <Route path="*" element={<AuthScreen />} />
+        ) : (
+          <>
+            <Route
+              path="/"
+              element={childId ? <ChildHomeScreen childId={childId} /> : <HomeScreen />}
+            />
+            <Route path="/wallet/:childId" element={<WalletScreen />} />
+            <Route path="/leaderboard" element={<LeaderboardScreen />} />
+            <Route
+              path="/child/:childId/mission/:missionId"
+              element={<MissionDetailScreen />}
+            />
+            {/* Parent-only routes — in child mode they redirect home. */}
+            <Route
+              path="/approve"
+              element={childId ? <Navigate to="/" replace /> : <ApprovalQueueScreen />}
+            />
+            <Route
+              path="/settings"
+              element={childId ? <Navigate to="/" replace /> : <SettingsScreen />}
+            />
+            <Route
+              path="/screentime"
+              element={childId ? <Navigate to="/" replace /> : <ScreenTimeQueueScreen />}
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </>
+        )}
       </Routes>
     </BrowserRouter>
   );

@@ -41,6 +41,10 @@ export function AddChildSheet({
   const [limitOverride, setLimitOverride] = useState<number | null>(
     editing?.daily_limit_minutes_override ?? null
   );
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [inviting, setInviting] = useState(false);
+  const [resetMsg, setResetMsg] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -80,8 +84,45 @@ export function AddChildSheet({
     }
   }
 
+  async function sendInvite() {
+    if (!editing) return;
+    const trimmed = inviteEmail.trim().toLowerCase();
+    if (!trimmed.includes("@")) {
+      setErr("Skriv en giltig e-postadress.");
+      return;
+    }
+    setInviting(true);
+    setErr(null);
+    setInviteLink(null);
+    try {
+      const { data, error } = await supabase.rpc("create_child_invite", {
+        p_child_id: editing.id,
+        p_email: trimmed
+      });
+      if (error) throw error;
+      const token = (data as { token?: string } | null)?.token;
+      if (!token) throw new Error("Inget token returnerades.");
+      setInviteLink(`${window.location.origin}/join?token=${token}`);
+    } catch (e) {
+      setErr((e as Error).message);
+    } finally {
+      setInviting(false);
+    }
+  }
+
+  async function resetChildPassword() {
+    if (!editing?.email) return;
+    setResetMsg(null);
+    setErr(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(editing.email, {
+      redirectTo: `${window.location.origin}/`
+    });
+    if (error) setErr(error.message);
+    else setResetMsg(`Återställningslänk skickad till ${editing.email}.`);
+  }
+
   return (
-    <Sheet title={isEditing ? "Ändra barn" : "Nytt barn"} onClose={onClose}>
+    <Sheet title={isEditing ? "Hantera barn" : "Nytt barn"} onClose={onClose}>
       <div style={{ display: "grid", gap: 14 }}>
         <Kort>
           <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 6 }}>Smeknamn</label>
@@ -348,6 +389,142 @@ export function AddChildSheet({
             </div>
           </div>
         </Kort>
+
+        {isEditing && (
+          <Kort>
+            <h3 style={{ margin: "0 0 4px", color: C.text, fontSize: 15 }}>
+              Eget inlogg för {nickname || "barnet"}
+            </h3>
+            <p style={{ color: C.muted, fontSize: 12, margin: "0 0 10px" }}>
+              Bjud in barnet med en e-post — de skapar sitt eget lösenord och loggar in på sin
+              egen enhet. Lämna tomt för att barnet ska använda föräldraenhet-läget.
+            </p>
+            {editing?.auth_user_id ? (
+              <div style={{ display: "grid", gap: 10 }}>
+                <div
+                  style={{
+                    padding: "10px 12px",
+                    background: `${C.green}15`,
+                    border: `1px solid ${C.green}55`,
+                    borderRadius: 10,
+                    color: C.green,
+                    fontSize: 13,
+                    fontWeight: 700
+                  }}
+                >
+                  ✓ Aktiverat — {editing.email}
+                </div>
+                <button
+                  onClick={() => void resetChildPassword()}
+                  type="button"
+                  style={{
+                    background: "transparent",
+                    border: `1px solid ${C.border}`,
+                    borderRadius: 10,
+                    padding: "10px 12px",
+                    color: C.text,
+                    cursor: "pointer",
+                    fontSize: 13,
+                    fontWeight: 700
+                  }}
+                >
+                  📧 Skicka återställningslänk
+                </button>
+                <p style={{ color: C.muted, fontSize: 11, margin: 0 }}>
+                  Lösenord lagras hashat och kan inte visas — använd återställningslänk om
+                  barnet glömt.
+                </p>
+                {resetMsg && (
+                  <p style={{ color: C.green, fontSize: 12, margin: 0 }}>{resetMsg}</p>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 10 }}>
+                <Input
+                  type="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder={editing?.email ?? "barn@exempel.se"}
+                  autoComplete="email"
+                />
+                <button
+                  onClick={() => void sendInvite()}
+                  disabled={inviting || inviteEmail.trim().length < 3}
+                  type="button"
+                  style={{
+                    background: C.gold,
+                    border: "none",
+                    borderRadius: 10,
+                    padding: "10px 12px",
+                    color: "#fff",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    fontWeight: 700,
+                    opacity: inviting || inviteEmail.trim().length < 3 ? 0.5 : 1
+                  }}
+                >
+                  {inviting ? "Skapar…" : "Skapa inbjudningslänk"}
+                </button>
+                {inviteLink && (
+                  <div
+                    style={{
+                      padding: "10px 12px",
+                      background: `${C.gold}15`,
+                      border: `1px solid ${C.gold}55`,
+                      borderRadius: 10,
+                      display: "grid",
+                      gap: 8
+                    }}
+                  >
+                    <div style={{ color: C.text, fontSize: 12, fontWeight: 700 }}>
+                      Skicka denna länk till barnet:
+                    </div>
+                    <div
+                      style={{
+                        background: "rgba(255,255,255,0.7)",
+                        padding: "8px 10px",
+                        borderRadius: 8,
+                        wordBreak: "break-all",
+                        fontSize: 11,
+                        color: C.text,
+                        fontFamily: "monospace"
+                      }}
+                    >
+                      {inviteLink}
+                    </div>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(inviteLink);
+                          setResetMsg("Länk kopierad!");
+                          window.setTimeout(() => setResetMsg(null), 1500);
+                        } catch {
+                          /* clipboard may be blocked; user can long-press */
+                        }
+                      }}
+                      type="button"
+                      style={{
+                        background: "transparent",
+                        border: `1px solid ${C.gold}`,
+                        color: C.gold,
+                        borderRadius: 8,
+                        padding: "6px 12px",
+                        cursor: "pointer",
+                        fontSize: 12,
+                        fontWeight: 700
+                      }}
+                    >
+                      📋 Kopiera länk
+                    </button>
+                    {resetMsg && (
+                      <p style={{ color: C.green, fontSize: 12, margin: 0 }}>{resetMsg}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </Kort>
+        )}
 
         {err && <p style={{ color: C.red, fontSize: 13, margin: 0 }}>{err}</p>}
 

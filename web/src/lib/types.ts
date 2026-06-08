@@ -34,6 +34,8 @@ export interface ChildProfile {
   gender: Gender | null;
   global_leaderboard_opt_in: boolean;
   daily_limit_minutes_override: number | null;
+  email: string | null;
+  auth_user_id: string | null;
 }
 
 export type Recurrence = "once" | "daily" | "weekly";

@@ -35,14 +35,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         return;
       }
       setUser(s.user);
-      const { data } = await supabase
-        .from("family_members")
-        .select("family_id")
-        .eq("user_id", s.user.id)
-        .limit(1)
-        .maybeSingle();
+      const [memberRes, childRes] = await Promise.all([
+        supabase
+          .from("family_members")
+          .select("family_id, role")
+          .eq("user_id", s.user.id)
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from("child_profiles")
+          .select("id")
+          .eq("auth_user_id", s.user.id)
+          .maybeSingle()
+      ]);
       if (!active) return;
-      setFamilyId(data?.family_id ?? null);
+      setFamilyId(memberRes.data?.family_id ?? null);
+      // If this auth user is linked to a child profile, lock the device
+      // to that child automatically (same code path as the parent
+      // manually choosing the child on their device).
+      if (childRes.data?.id) {
+        setChildIdState(childRes.data.id);
+      }
       setLoading(false);
     };
 
