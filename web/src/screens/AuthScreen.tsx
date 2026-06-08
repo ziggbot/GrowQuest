@@ -95,9 +95,13 @@ export function AuthScreen() {
     setInfo(null);
     setWorking(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/`
+      });
       if (error) throw error;
-      setInfo("Återställningslänk skickad till " + email + ".");
+      setInfo(
+        `Återställningslänk skickad till ${email}. Klicka på länken i mejlet — du landar tillbaka här och får sätta ett nytt lösenord.`
+      );
     } catch (e) {
       setErr((e as Error).message);
     } finally {

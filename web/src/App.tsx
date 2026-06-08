@@ -9,10 +9,11 @@ import { WalletScreen } from "./screens/WalletScreen";
 import { LeaderboardScreen } from "./screens/LeaderboardScreen";
 import { MissionDetailScreen } from "./screens/MissionDetailScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
+import { ResetPasswordScreen } from "./screens/ResetPasswordScreen";
 import { C } from "./design/tokens";
 
 export function App() {
-  const { loading, user, childId } = useSession();
+  const { loading, user, childId, recovery } = useSession();
 
   if (loading) {
     return (
@@ -21,6 +22,10 @@ export function App() {
       </div>
     );
   }
+
+  // The recovery session is technically authenticated, but we hijack
+  // the UI to force a new password before the user can do anything else.
+  if (recovery && user) return <ResetPasswordScreen />;
 
   if (!user) return <AuthScreen />;
 

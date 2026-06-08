@@ -8,6 +8,8 @@ interface SessionState {
   user: User | null;
   familyId: string | null;
   childId: string | null;          // device-locked child id, null when in parent mode
+  recovery: boolean;               // user landed via the password-reset email link
+  clearRecovery: () => void;
   setChildId: (id: string | null) => void;
   signOut: () => Promise<void>;
 }
@@ -19,6 +21,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [familyId, setFamilyId] = useState<string | null>(null);
   const [childId, setChildIdState] = useState<string | null>(childMode.get());
   const [loading, setLoading] = useState(true);
+  const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -44,7 +47,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     };
 
     supabase.auth.getSession().then(({ data }) => apply(data.session));
-    const sub = supabase.auth.onAuthStateChange((_event, s) => {
+    const sub = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setRecovery(true);
+      }
       void apply(s);
     });
 
@@ -53,6 +59,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       sub.data.subscription.unsubscribe();
     };
   }, []);
+
+  const clearRecovery = () => setRecovery(false);
 
   const setChildId = (id: string | null) => {
     if (id) childMode.set(id);
@@ -67,7 +75,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <Ctx.Provider value={{ loading, user, familyId, childId, setChildId, signOut }}>
+    <Ctx.Provider
+      value={{
+        loading,
+        user,
+        familyId,
+        childId,
+        recovery,
+        clearRecovery,
+        setChildId,
+        signOut
+      }}
+    >
       {children}
     </Ctx.Provider>
   );
