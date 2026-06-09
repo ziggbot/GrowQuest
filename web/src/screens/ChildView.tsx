@@ -7,6 +7,7 @@ import { CK } from "../design/tokens";
 import { KortKid, PillKid } from "../design/components";
 import { MissionHistorySheet } from "./MissionHistorySheet";
 import { JumperAnimation, CoinRain } from "../design/lottie";
+import { computeStreak } from "../lib/streak";
 
 export function ChildView({
   child,
@@ -22,6 +23,10 @@ export function ChildView({
   const isParentPreview = deviceChildId === null;
   const [missions, setMissions] = useState<Mission[]>([]);
   const [submittedToday, setSubmittedToday] = useState<Set<string>>(new Set());
+  const [approvedToday, setApprovedToday] = useState<Set<string>>(new Set());
+  const [streak, setStreak] = useState(0);
+  const [myntToday, setMyntToday] = useState(0);
+  const [streakClaimMsg, setStreakClaimMsg] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -40,7 +45,9 @@ export function ChildView({
       startOfWeek.setDate(startOfWeek.getDate() - dow);
       startOfWeek.setHours(0, 0, 0, 0);
 
-      const [mRes, sRes] = await Promise.all([
+      const lookback = new Date(now);
+      lookback.setDate(lookback.getDate() - 30);
+      const [mRes, sRes, lRes] = await Promise.all([
         supabase
           .from("missions")
           .select("*")
@@ -50,10 +57,26 @@ export function ChildView({
         supabase
           .from("mission_submissions")
           .select("mission_id, status, submitted_at, reviewed_at")
+          .eq("child_id", child.id),
+        supabase
+          .from("coin_ledger")
+          .select("amount_mynt, reason, created_at")
           .eq("child_id", child.id)
+          .gte("created_at", lookback.toISOString())
       ]);
       if (mRes.error) throw mRes.error;
       if (sRes.error) throw sRes.error;
+      if (lRes.error) throw lRes.error;
+
+      const ledger = (lRes.data ?? []) as { amount_mynt: number; reason: string; created_at: string }[];
+      const approvalDates = ledger
+        .filter((e) => e.reason === "mission_approved")
+        .map((e) => e.created_at);
+      setStreak(computeStreak(approvalDates, now));
+      const earnedToday = ledger
+        .filter((e) => e.amount_mynt > 0 && new Date(e.created_at) >= startOfToday)
+        .reduce((sum, e) => sum + e.amount_mynt, 0);
+      setMyntToday(earnedToday);
 
       const allMissions = (mRes.data ?? []) as Mission[];
       const allSubs = (sRes.data ?? []) as Pick<
@@ -63,6 +86,7 @@ export function ChildView({
 
       const todaySubmitted = new Set<string>();
       const hiddenApproved = new Set<string>();
+      const todayApproved = new Set<string>();
 
       for (const sub of allSubs) {
         if (new Date(sub.submitted_at) >= startOfToday) {
@@ -74,10 +98,13 @@ export function ChildView({
         const reviewed = sub.reviewed_at ? new Date(sub.reviewed_at) : null;
         if (mission.recurrence === "once") {
           hiddenApproved.add(sub.mission_id);
+          todayApproved.add(sub.mission_id);
         } else if (mission.recurrence === "daily" && reviewed && reviewed >= startOfToday) {
           hiddenApproved.add(sub.mission_id);
+          todayApproved.add(sub.mission_id);
         } else if (mission.recurrence === "weekly" && reviewed && reviewed >= startOfWeek) {
           hiddenApproved.add(sub.mission_id);
+          todayApproved.add(sub.mission_id);
         }
       }
 
@@ -93,6 +120,7 @@ export function ChildView({
 
       setMissions(visible);
       setSubmittedToday(todaySubmitted);
+      setApprovedToday(todayApproved);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -103,6 +131,22 @@ export function ChildView({
   useEffect(() => {
     void reload();
   }, [child.id]);
+
+  // Auto-claim the streak bonus on day 7+. Server-side it's idempotent
+  // per ISO week so we can fire-and-forget every time the streak hits 7.
+  useEffect(() => {
+    if (isParentPreview) return;
+    if (streak < 7) return;
+    void (async () => {
+      const { data } = await supabase.rpc("claim_streak_bonus", { p_child_id: child.id });
+      const result = data as { claimed?: boolean; amount?: number } | null;
+      if (result?.claimed && result.amount) {
+        setStreakClaimMsg(`🔥 7 dagar i rad — bonus +${result.amount} 🪙!`);
+        setShowCoinRain(true);
+        void reload();
+      }
+    })();
+  }, [streak, child.id, isParentPreview]);
 
   // Coin rain trigger — both realtime (live approval while child is on the
   // screen) and a catch-up on mount (parent approved while child was away).
@@ -215,13 +259,68 @@ export function ChildView({
         >
           Dagens uppdrag
         </h3>
+        {streak > 0 && (
+          <div
+            style={{
+              margin: "0 4px 10px",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "6px 12px",
+              borderRadius: 999,
+              background: `linear-gradient(135deg, ${CK.gold}33, ${CK.gold}11)`,
+              border: `1px solid ${CK.gold}66`,
+              color: CK.text,
+              fontWeight: 800,
+              fontSize: 13
+            }}
+          >
+            <span style={{ fontSize: 18, lineHeight: 1 }}>🔥</span>
+            {streak} dag{streak === 1 ? "" : "ar"} i rad
+            {streak >= 7 && <span style={{ color: CK.gold, marginLeft: 4 }}>· BONUS!</span>}
+          </div>
+        )}
+        {streakClaimMsg && (
+          <p
+            style={{
+              margin: "0 4px 10px",
+              color: CK.gold,
+              fontWeight: 800,
+              fontSize: 13,
+              textAlign: "center"
+            }}
+          >
+            {streakClaimMsg}
+          </p>
+        )}
         {loading && (
           <p style={{ color: CK.muted, fontSize: 13, padding: "0 4px" }}>Laddar…</p>
         )}
-        {!loading && missions.length === 0 && (
+        {!loading && missions.length === 0 && approvedToday.size === 0 && (
           <KortKid>
             <p style={{ color: CK.textSoft, fontSize: 14, margin: 0, textAlign: "center" }}>
               Inga uppdrag idag. Be en förälder skapa ett!
+            </p>
+          </KortKid>
+        )}
+        {!loading && missions.length === 0 && approvedToday.size > 0 && (
+          <KortKid
+            style={{
+              textAlign: "center",
+              padding: "26px 20px",
+              background: `linear-gradient(135deg, ${CK.gold}22, ${CK.green}22)`,
+              border: `2px solid ${CK.gold}55`
+            }}
+          >
+            <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 6 }}>🎉</div>
+            <h3 style={{ margin: "0 0 6px", color: CK.text, fontWeight: 800, fontSize: 18 }}>
+              Klart för idag!
+            </h3>
+            <p style={{ color: CK.text, fontSize: 14, margin: "0 0 10px" }}>
+              Du har klarat {approvedToday.size} uppdrag och tjänat <strong>{myntToday} 🪙</strong>.
+            </p>
+            <p style={{ color: CK.textSoft, fontSize: 13, margin: 0, fontStyle: "italic" }}>
+              Lägg ifrån dig telefonen och kom tillbaka i morgon. 💪
             </p>
           </KortKid>
         )}
