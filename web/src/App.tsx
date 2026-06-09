@@ -5,6 +5,7 @@ import { HomeScreen } from "./screens/HomeScreen";
 import { ChildHomeScreen } from "./screens/ChildHomeScreen";
 import { ApprovalQueueScreen } from "./screens/ApprovalQueueScreen";
 import { ScreenTimeQueueScreen } from "./screens/ScreenTimeQueueScreen";
+import { InboxScreen } from "./screens/InboxScreen";
 import { WalletScreen } from "./screens/WalletScreen";
 import { LeaderboardScreen } from "./screens/LeaderboardScreen";
 import { MissionDetailScreen } from "./screens/MissionDetailScreen";
@@ -47,6 +48,10 @@ export function App() {
               element={<MissionDetailScreen />}
             />
             {/* Parent-only routes — in child mode they redirect home. */}
+            <Route
+              path="/inbox"
+              element={childId ? <Navigate to="/" replace /> : <InboxScreen />}
+            />
             <Route
               path="/approve"
               element={childId ? <Navigate to="/" replace /> : <ApprovalQueueScreen />}

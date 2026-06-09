@@ -63,6 +63,10 @@ export function HomeScreen() {
     setLoading(true);
     setErr(null);
     try {
+      // Best-effort: clear any pending submissions that have aged past the
+      // parent's auto-approve window. Silently ignore if the migration
+      // hasn't shipped yet.
+      void supabase.rpc("auto_approve_stale", { p_family_id: familyId });
       const startOfToday = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
       const [pcRes, kidsRes, mRes, pRes, todayRes, rRes] = await Promise.all([
         supabase.from("profile_configs").select("*").eq("family_id", familyId).maybeSingle(),
@@ -279,8 +283,7 @@ export function HomeScreen() {
             onAddChild={() => nav("/settings")}
             onCreateMission={() => setShowCreateMission(true)}
             onOpenWallet={(c) => nav(`/wallet/${c.id}`)}
-            onOpenApprove={() => nav(`/approve`)}
-            onOpenScreenTime={() => nav(`/screentime`)}
+            onOpenInbox={() => nav(`/inbox`)}
             onOpenLeaderboard={() => nav(`/leaderboard`)}
             loading={loading}
           />
@@ -352,8 +355,7 @@ function ParentDashboard({
   onAddChild,
   onCreateMission,
   onOpenWallet,
-  onOpenApprove,
-  onOpenScreenTime,
+  onOpenInbox,
   onOpenLeaderboard,
   loading
 }: {
@@ -365,8 +367,7 @@ function ParentDashboard({
   onAddChild: () => void;
   onCreateMission: () => void;
   onOpenWallet: (c: ChildProfile) => void;
-  onOpenApprove: () => void;
-  onOpenScreenTime: () => void;
+  onOpenInbox: () => void;
   onOpenLeaderboard: () => void;
   loading: boolean;
 }) {
@@ -384,15 +385,17 @@ function ParentDashboard({
     );
   }
 
+  const inboxTotal = pendingCount + pendingRedemptionsCount;
+
   return (
     <div style={{ display: "grid", gap: 14 }}>
       <Kort>
         <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-          <h3 style={{ margin: 0, flex: 1 }}>Uppdrag att granska</h3>
-          {pendingCount > 0 && <Pill text={String(pendingCount)} tint={C.purple} />}
+          <h3 style={{ margin: 0, flex: 1 }}>Att granska</h3>
+          {inboxTotal > 0 && <Pill text={String(inboxTotal)} tint={C.purple} />}
         </div>
         <button
-          onClick={onOpenApprove}
+          onClick={onOpenInbox}
           style={{
             width: "100%",
             background: "none",
@@ -407,40 +410,9 @@ function ParentDashboard({
           }}
         >
           <span>
-            {pendingCount > 0
-              ? `Du har ${pendingCount} inskickade uppdrag`
-              : "Inga uppdrag väntar"}
-          </span>
-          <span style={{ color: C.muted }}>›</span>
-        </button>
-      </Kort>
-
-      <Kort>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-          <h3 style={{ margin: 0, flex: 1 }}>Begäran (skärm/pengar)</h3>
-          {pendingRedemptionsCount > 0 && (
-            <Pill text={String(pendingRedemptionsCount)} tint={C.purple} />
-          )}
-        </div>
-        <button
-          onClick={onOpenScreenTime}
-          style={{
-            width: "100%",
-            background: "none",
-            border: "none",
-            color: C.text,
-            textAlign: "left",
-            padding: 0,
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between"
-          }}
-        >
-          <span>
-            {pendingRedemptionsCount > 0
-              ? `${pendingRedemptionsCount} ny${pendingRedemptionsCount === 1 ? "" : "a"} begäran att granska`
-              : "Inga öppna begäran"}
+            {inboxTotal === 0
+              ? "🎉 Inget väntar"
+              : `${pendingCount} uppdrag · ${pendingRedemptionsCount} begäran`}
           </span>
           <span style={{ color: C.muted }}>›</span>
         </button>
