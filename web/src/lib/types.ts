@@ -62,6 +62,8 @@ export interface Mission {
   created_by: string;
   created_at: string;
   assigned_child_id: string | null;
+  auto_approve: boolean;
+  auto_approve_hours: number;
 }
 
 export type SubmissionStatus = "pending" | "approved" | "rejected";
