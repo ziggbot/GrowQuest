@@ -57,6 +57,8 @@ export function CreateMissionSheet({
   const [assignedChildId, setAssignedChildId] = useState<string | null>(null);
   const [personalTemplates, setPersonalTemplates] = useState<DbMissionTemplate[]>([]);
   const [ageBand, setAgeBand] = useState<AgeBand>("7-9");
+  const [autoApprove, setAutoApprove] = useState(false);
+  const [autoApproveHours, setAutoApproveHours] = useState(24);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -168,18 +170,36 @@ export function CreateMissionSheet({
       const targetChildIds =
         assignedChildId === null ? children.map((c) => c.id) : [assignedChildId];
 
-      const rows = targetChildIds.map((childId) => ({
+      const baseRow = {
         family_id: familyId,
         title: trimmedTitle,
         description: trimmedDesc,
         reward_mynt: reward,
         recurrence,
         active: true,
-        created_by: userId,
-        assigned_child_id: childId
+        created_by: userId
+      };
+      const fullRows = targetChildIds.map((childId) => ({
+        ...baseRow,
+        assigned_child_id: childId,
+        auto_approve: autoApprove,
+        auto_approve_hours: autoApproveHours
       }));
 
-      const { error } = await supabase.from("missions").insert(rows);
+      let { error } = await supabase.from("missions").insert(fullRows);
+      // Soft-fall-back if the cloud migration with auto_approve hasn't
+      // landed yet — try again without the new columns.
+      if (
+        error &&
+        (error.message.includes("auto_approve") || error.message.includes("auto_approve_hours"))
+      ) {
+        const fallback = targetChildIds.map((childId) => ({
+          ...baseRow,
+          assigned_child_id: childId
+        }));
+        const retry = await supabase.from("missions").insert(fallback);
+        error = retry.error;
+      }
       if (error) throw error;
 
       // Best-effort: save as personal template if this title is new
@@ -433,6 +453,62 @@ export function CreateMissionSheet({
                   </button>
                 ))}
               </div>
+            </div>
+            <div>
+              <div
+                role="button"
+                onClick={() => setAutoApprove((v) => !v)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 10,
+                  padding: "8px 10px",
+                  background: C.surface,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 10,
+                  cursor: "pointer"
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={autoApprove}
+                  readOnly
+                  style={{ width: 18, height: 18, accentColor: C.gold, margin: 0 }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>Auto-godkänn</div>
+                  <div style={{ color: C.muted, fontSize: 11 }}>
+                    Lita på inskick utan att vänta — godkänns automatiskt efter X timmar.
+                  </div>
+                </div>
+              </div>
+              {autoApprove && (
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 8 }}>
+                  <button
+                    onClick={() => setAutoApproveHours((h) => Math.max(1, h - 1))}
+                    style={stepBtn}
+                  >
+                    −1
+                  </button>
+                  <div
+                    style={{
+                      flex: 1,
+                      textAlign: "center",
+                      color: C.gold,
+                      fontWeight: 700,
+                      fontSize: 16
+                    }}
+                  >
+                    {autoApproveHours} {autoApproveHours === 1 ? "timme" : "timmar"}
+                  </div>
+                  <button
+                    onClick={() => setAutoApproveHours((h) => Math.min(168, h + 1))}
+                    style={stepBtn}
+                  >
+                    +1
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </Kort>

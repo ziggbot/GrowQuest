@@ -27,6 +27,7 @@ import { CashRedeemSheet } from "./CashRedeemSheet";
 import { CreateSavingsGoalSheet } from "./CreateSavingsGoalSheet";
 import { JumperAnimation } from "../design/lottie";
 import { currentLevel, nextLevel } from "../lib/levels";
+import { CashHistoryCard, ScreenTimeHistoryCard } from "./wallet/HistoryCards";
 import { Avatar } from "../design/Avatar";
 import { BackButton } from "../design/BackButton";
 
@@ -540,86 +541,48 @@ export function WalletScreen() {
           </div>
         )}
 
-        {screenTimeHistory.length > 0 && (
-          <Kort style={{ marginTop: 14 }}>
-            <div style={{ display: "flex", alignItems: "baseline", marginBottom: 8, gap: 8 }}>
-              <h3 style={{ margin: 0, flex: 1 }}>Växlat till skärmtid</h3>
-              <span style={{ color: C.purple, fontWeight: 800, fontSize: 16 }}>
-                {screenTimeHistory.reduce((s, r) => s + r.minutes, 0)} min
-              </span>
-            </div>
-            <div style={{ color: C.muted, fontSize: 11, marginBottom: 10 }}>
-              Totalt {screenTimeHistory.length} godkänd{screenTimeHistory.length === 1 ? "" : "a"} växling
-              {screenTimeHistory.length === 1 ? "" : "ar"}
-            </div>
-            <div style={{ display: "grid", gap: 6 }}>
-              {screenTimeHistory.map((r) => (
-                <div
-                  key={r.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "6px 0",
-                    borderTop: `1px solid ${C.border}`
-                  }}
-                >
-                  <span style={{ flex: 1, fontSize: 13 }}>
-                    {new Date(r.reviewed_at ?? r.started_at).toLocaleDateString("sv-SE", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric"
-                    })}
-                  </span>
-                  <span style={{ color: C.purple, fontWeight: 700, fontSize: 14 }}>
-                    {r.minutes} min
-                  </span>
-                  <span style={{ color: C.muted, fontSize: 11, marginLeft: 8 }}>
-                    {r.mynt_cost} 🪙
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Kort>
-        )}
-
-        {cashHistory.length > 0 && (
-          <Kort style={{ marginTop: 14 }}>
-            <div style={{ display: "flex", alignItems: "baseline", marginBottom: 8, gap: 8 }}>
-              <h3 style={{ margin: 0, flex: 1 }}>Växlat till pengar</h3>
-              <span style={{ color: C.gold, fontWeight: 800, fontSize: 16 }}>
-                {cashHistory.reduce((s, r) => s + r.mynt_cost, 0)} 🪙
-              </span>
-            </div>
-            <div style={{ color: C.muted, fontSize: 11, marginBottom: 10 }}>
-              Totalt {cashHistory.length} godkänd{cashHistory.length === 1 ? "" : "a"} växling
-              {cashHistory.length === 1 ? "" : "ar"}
-            </div>
-            <div style={{ display: "grid", gap: 6 }}>
-              {cashHistory.map((r) => (
-                <div
-                  key={r.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "6px 0",
-                    borderTop: `1px solid ${C.border}`
-                  }}
-                >
-                  <span style={{ flex: 1, fontSize: 13 }}>
-                    {new Date(r.reviewed_at ?? r.started_at).toLocaleDateString("sv-SE", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric"
-                    })}
-                  </span>
-                  <span style={{ color: C.gold, fontWeight: 700, fontSize: 14 }}>
-                    {r.mynt_cost} 🪙
-                  </span>
-                </div>
-              ))}
-            </div>
-          </Kort>
-        )}
+        <ScreenTimeHistoryCard
+          items={screenTimeHistory}
+          theme={{
+            surface: C.surface,
+            border: C.border,
+            text: C.text,
+            muted: C.muted,
+            accent: C.purple,
+            red: C.red,
+            green: C.green,
+            gold: C.gold
+          }}
+          cardStyle={{
+            marginTop: 14,
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: 18,
+            padding: 16,
+            boxShadow: C.shadow
+          }}
+        />
+        <CashHistoryCard
+          items={cashHistory}
+          theme={{
+            surface: C.surface,
+            border: C.border,
+            text: C.text,
+            muted: C.muted,
+            accent: C.gold,
+            red: C.red,
+            green: C.green,
+            gold: C.gold
+          }}
+          cardStyle={{
+            marginTop: 14,
+            background: C.surface,
+            border: `1px solid ${C.border}`,
+            borderRadius: 18,
+            padding: 16,
+            boxShadow: C.shadow
+          }}
+        />
 
         <Kort style={{ marginTop: 14 }}>
           <button
