@@ -26,6 +26,7 @@ import { RedeemSheet } from "./RedeemSheet";
 import { CashRedeemSheet } from "./CashRedeemSheet";
 import { CreateSavingsGoalSheet } from "./CreateSavingsGoalSheet";
 import { JumperAnimation } from "../design/lottie";
+import { currentLevel, nextLevel } from "../lib/levels";
 import { Avatar } from "../design/Avatar";
 import { BackButton } from "../design/BackButton";
 
@@ -211,11 +212,10 @@ export function WalletScreen() {
               <JumperAnimation
                 gender={child?.gender ?? "girl"}
                 size={180}
+                approvedMissions={approved}
                 fallback={child?.avatar_emoji ?? "🧒"}
               />
-              <div style={{ color: CK.muted, fontSize: 12, marginTop: 8 }}>
-                {approved} godkända uppdrag totalt
-              </div>
+              <CharacterLevelLabel approved={approved} muted={CK.muted} text={CK.text} gold={CK.gold} />
             </div>
           </KortKid>
 
@@ -433,11 +433,10 @@ export function WalletScreen() {
             <JumperAnimation
               gender={child?.gender ?? "girl"}
               size={180}
+              approvedMissions={approved}
               fallback={child?.avatar_emoji ?? "🧒"}
             />
-            <div style={{ color: C.muted, fontSize: 12, marginTop: 8 }}>
-              {approved} godkända uppdrag totalt
-            </div>
+            <CharacterLevelLabel approved={approved} muted={C.muted} text={C.text} gold={C.gold} />
           </div>
         </Kort>
 
@@ -757,6 +756,41 @@ export function WalletScreen() {
         )}
       </div>
     </ScreenContainer>
+  );
+}
+
+function CharacterLevelLabel({
+  approved,
+  muted,
+  text,
+  gold
+}: {
+  approved: number;
+  muted: string;
+  text: string;
+  gold: string;
+}) {
+  const lvl = currentLevel(approved);
+  const next = nextLevel(approved);
+  return (
+    <div style={{ textAlign: "center", marginTop: 8 }}>
+      <div style={{ color: text, fontSize: 14, fontWeight: 800 }}>
+        Nivå {lvl.level} · {lvl.title}
+      </div>
+      <div style={{ color: muted, fontSize: 11, marginTop: 2 }}>
+        {approved} godkända uppdrag totalt
+      </div>
+      {next && (
+        <div style={{ color: gold, fontSize: 11, marginTop: 4, fontWeight: 700 }}>
+          {next.unlock} om {next.threshold - approved} till
+        </div>
+      )}
+      {!next && (
+        <div style={{ color: gold, fontSize: 11, marginTop: 4, fontWeight: 800 }}>
+          🏆 Toppnivå!
+        </div>
+      )}
+    </div>
   );
 }
 

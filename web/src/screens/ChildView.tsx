@@ -26,6 +26,7 @@ export function ChildView({
   const [approvedToday, setApprovedToday] = useState<Set<string>>(new Set());
   const [streak, setStreak] = useState(0);
   const [myntToday, setMyntToday] = useState(0);
+  const [lifetimeApproved, setLifetimeApproved] = useState(0);
   const [streakClaimMsg, setStreakClaimMsg] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -47,7 +48,7 @@ export function ChildView({
 
       const lookback = new Date(now);
       lookback.setDate(lookback.getDate() - 30);
-      const [mRes, sRes, lRes] = await Promise.all([
+      const [mRes, sRes, lRes, pRes] = await Promise.all([
         supabase
           .from("missions")
           .select("*")
@@ -62,11 +63,17 @@ export function ChildView({
           .from("coin_ledger")
           .select("amount_mynt, reason, created_at")
           .eq("child_id", child.id)
-          .gte("created_at", lookback.toISOString())
+          .gte("created_at", lookback.toISOString()),
+        supabase
+          .from("child_progress")
+          .select("approved_missions")
+          .eq("child_id", child.id)
+          .maybeSingle()
       ]);
       if (mRes.error) throw mRes.error;
       if (sRes.error) throw sRes.error;
       if (lRes.error) throw lRes.error;
+      setLifetimeApproved((pRes.data?.approved_missions as number | undefined) ?? 0);
 
       const ledger = (lRes.data ?? []) as { amount_mynt: number; reason: string; created_at: string }[];
       const approvalDates = ledger
@@ -230,6 +237,7 @@ export function ChildView({
               <JumperAnimation
                 gender={child.gender ?? "girl"}
                 size={72}
+                approvedMissions={lifetimeApproved}
                 fallback={child.avatar_emoji}
               />
             </div>

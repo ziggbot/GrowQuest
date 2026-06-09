@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { currentLevel } from "../lib/levels";
 
 // Hand-drawn SVG fallback character — a cheerful blonde explorer girl.
 // Used when no Lottie animation loads (the uploaded Lottie files turned
@@ -30,7 +31,16 @@ const KEYFRAMES = `
   }
 `;
 
-export function AdventureGirl({ size = 180, style }: { size?: number; style?: CSSProperties }) {
+export function AdventureGirl({
+  size = 180,
+  approvedMissions = 0,
+  style
+}: {
+  size?: number;
+  approvedMissions?: number;
+  style?: CSSProperties;
+}) {
+  const { accessory } = currentLevel(approvedMissions);
   return (
     <div style={{ width: size, height: size, ...style }}>
       <style>{KEYFRAMES}</style>
@@ -43,8 +53,22 @@ export function AdventureGirl({ size = 180, style }: { size?: number; style?: CS
         {/* Ground shadow */}
         <ellipse cx="100" cy="186" rx="38" ry="4" fill="rgba(0,0,0,0.12)" />
 
+        {/* Pet — sits next to her at level 3+ */}
+        {accessory.pet && <PetDragon side="right" />}
+
         {/* Whole character bobs */}
         <g style={{ animation: "gq-girl-bob 1.6s ease-in-out infinite", transformOrigin: "100px 186px" }}>
+          {/* Cape behind body — level 4+ */}
+          {accessory.cape && (
+            <path
+              d="M70 110 Q60 160 80 178 L120 178 Q140 160 130 110 Z"
+              fill="#e74c3c"
+              stroke="#a82d22"
+              strokeWidth="2"
+              opacity="0.95"
+            />
+          )}
+
           {/* Legs */}
           <g>
             <rect x="84" y="138" width="12" height="32" rx="6" fill="#f1c89b" />
@@ -53,6 +77,14 @@ export function AdventureGirl({ size = 180, style }: { size?: number; style?: CS
             <rect x="80" y="166" width="20" height="10" rx="4" fill="#7a4a2b" />
             <rect x="100" y="166" width="20" height="10" rx="4" fill="#7a4a2b" />
           </g>
+
+          {/* Backpack — strap visible, peeks behind body. Level 2+ */}
+          {accessory.backpack && (
+            <g>
+              <rect x="56" y="116" width="10" height="32" rx="3" fill="#3d6cb0" />
+              <rect x="134" y="116" width="10" height="32" rx="3" fill="#3d6cb0" />
+            </g>
+          )}
 
           {/* Body — green explorer dress */}
           <g>
@@ -108,19 +140,36 @@ export function AdventureGirl({ size = 180, style }: { size?: number; style?: CS
             strokeWidth="1"
           />
 
-          {/* Explorer hat */}
-          <g>
-            <ellipse cx="100" cy="50" rx="40" ry="6" fill="#a06a3c" />
-            <path
-              d="M76 50 Q76 30 100 30 Q124 30 124 50 Z"
-              fill="#a06a3c"
-              stroke="#6b4724"
-              strokeWidth="1.5"
-            />
-            <rect x="76" y="46" width="48" height="4" fill="#6b4724" />
-            {/* Leaf accent */}
-            <path d="M118 38 Q126 30 130 38 Q126 42 118 38 Z" fill="#6cb35a" />
-          </g>
+          {/* Explorer hat — replaced by crown at level 5 */}
+          {!accessory.crown && (
+            <g>
+              <ellipse cx="100" cy="50" rx="40" ry="6" fill="#a06a3c" />
+              <path
+                d="M76 50 Q76 30 100 30 Q124 30 124 50 Z"
+                fill="#a06a3c"
+                stroke="#6b4724"
+                strokeWidth="1.5"
+              />
+              <rect x="76" y="46" width="48" height="4" fill="#6b4724" />
+              {/* Leaf accent */}
+              <path d="M118 38 Q126 30 130 38 Q126 42 118 38 Z" fill="#6cb35a" />
+            </g>
+          )}
+
+          {/* Golden crown — level 5 only */}
+          {accessory.crown && (
+            <g>
+              <path
+                d="M72 52 L80 32 L92 46 L100 26 L108 46 L120 32 L128 52 Z"
+                fill="#f3c83b"
+                stroke="#a87808"
+                strokeWidth="2"
+              />
+              <circle cx="100" cy="34" r="3" fill="#e74c3c" />
+              <circle cx="80" cy="40" r="2.5" fill="#3d6cb0" />
+              <circle cx="120" cy="40" r="2.5" fill="#3d6cb0" />
+            </g>
+          )}
 
           {/* Face: blush */}
           <circle cx="82" cy="88" r="4" fill="#f4a8a0" opacity="0.7" />
@@ -151,7 +200,35 @@ export function AdventureGirl({ size = 180, style }: { size?: number; style?: CS
   );
 }
 
-export function AdventureBoy({ size = 180, style }: { size?: number; style?: CSSProperties }) {
+function PetDragon({ side }: { side: "left" | "right" }) {
+  const x = side === "right" ? 160 : 30;
+  return (
+    <g
+      style={{
+        transform: `translateY(0)`,
+        animation: "gq-girl-bob 2.4s ease-in-out infinite",
+        transformOrigin: `${x + 10}px 178px`
+      }}
+    >
+      <ellipse cx={x + 10} cy={183} rx={14} ry={3} fill="rgba(0,0,0,0.1)" />
+      <ellipse cx={x + 10} cy={170} rx={11} ry={8} fill="#4ea15d" stroke="#2f6f3c" strokeWidth="1.2" />
+      <circle cx={x + 14} cy={166} r={4} fill="#4ea15d" stroke="#2f6f3c" strokeWidth="1.2" />
+      <circle cx={x + 13} cy={165} r={1.2} fill="#2b2118" />
+      <path d={`M${x + 4} 168 L${x - 2} 162 L${x - 2} 174 Z`} fill="#4ea15d" stroke="#2f6f3c" strokeWidth="1.2" />
+    </g>
+  );
+}
+
+export function AdventureBoy({
+  size = 180,
+  approvedMissions = 0,
+  style
+}: {
+  size?: number;
+  approvedMissions?: number;
+  style?: CSSProperties;
+}) {
+  const { accessory } = currentLevel(approvedMissions);
   return (
     <div style={{ width: size, height: size, ...style }}>
       <style>{KEYFRAMES}</style>
@@ -162,12 +239,30 @@ export function AdventureBoy({ size = 180, style }: { size?: number; style?: CSS
         xmlns="http://www.w3.org/2000/svg"
       >
         <ellipse cx="100" cy="186" rx="38" ry="4" fill="rgba(0,0,0,0.12)" />
+        {accessory.pet && <PetDragon side="right" />}
         <g style={{ animation: "gq-girl-bob 1.6s ease-in-out infinite", transformOrigin: "100px 186px" }}>
+          {accessory.cape && (
+            <path
+              d="M70 110 Q60 160 80 178 L120 178 Q140 160 130 110 Z"
+              fill="#e74c3c"
+              stroke="#a82d22"
+              strokeWidth="2"
+              opacity="0.95"
+            />
+          )}
+
           {/* Legs */}
           <rect x="84" y="138" width="12" height="32" rx="6" fill="#f1c89b" />
           <rect x="104" y="138" width="12" height="32" rx="6" fill="#f1c89b" />
           <rect x="80" y="166" width="20" height="10" rx="4" fill="#5b3a20" />
           <rect x="100" y="166" width="20" height="10" rx="4" fill="#5b3a20" />
+
+          {accessory.backpack && (
+            <g>
+              <rect x="56" y="116" width="10" height="32" rx="3" fill="#3d6cb0" />
+              <rect x="134" y="116" width="10" height="32" rx="3" fill="#3d6cb0" />
+            </g>
+          )}
 
           {/* Body — blue adventurer shirt */}
           <path
@@ -199,10 +294,27 @@ export function AdventureBoy({ size = 180, style }: { size?: number; style?: CSS
             strokeWidth="1"
           />
 
-          {/* Explorer hat */}
-          <ellipse cx="100" cy="48" rx="40" ry="6" fill="#a06a3c" />
-          <path d="M76 48 Q76 28 100 28 Q124 28 124 48 Z" fill="#a06a3c" stroke="#6b4724" strokeWidth="1.5" />
-          <rect x="76" y="44" width="48" height="4" fill="#6b4724" />
+          {/* Explorer hat — replaced by crown at level 5 */}
+          {!accessory.crown && (
+            <g>
+              <ellipse cx="100" cy="48" rx="40" ry="6" fill="#a06a3c" />
+              <path d="M76 48 Q76 28 100 28 Q124 28 124 48 Z" fill="#a06a3c" stroke="#6b4724" strokeWidth="1.5" />
+              <rect x="76" y="44" width="48" height="4" fill="#6b4724" />
+            </g>
+          )}
+          {accessory.crown && (
+            <g>
+              <path
+                d="M72 52 L80 32 L92 46 L100 26 L108 46 L120 32 L128 52 Z"
+                fill="#f3c83b"
+                stroke="#a87808"
+                strokeWidth="2"
+              />
+              <circle cx="100" cy="34" r="3" fill="#e74c3c" />
+              <circle cx="80" cy="40" r="2.5" fill="#3d6cb0" />
+              <circle cx="120" cy="40" r="2.5" fill="#3d6cb0" />
+            </g>
+          )}
 
           {/* Blush */}
           <circle cx="82" cy="88" r="4" fill="#f4a8a0" opacity="0.7" />

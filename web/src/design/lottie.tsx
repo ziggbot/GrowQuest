@@ -13,14 +13,20 @@ import { playWinChime } from "./sounds";
 export function JumperAnimation({
   gender,
   size = 96,
+  approvedMissions = 0,
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   fallback
 }: {
   gender: Gender;
   size?: number;
+  approvedMissions?: number;
   fallback?: ReactNode;
 }) {
-  return gender === "boy" ? <AdventureBoy size={size} /> : <AdventureGirl size={size} />;
+  return gender === "boy" ? (
+    <AdventureBoy size={size} approvedMissions={approvedMissions} />
+  ) : (
+    <AdventureGirl size={size} approvedMissions={approvedMissions} />
+  );
 }
 
 const COIN_RAIN_KEYFRAMES = `
