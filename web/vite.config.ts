@@ -26,6 +26,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,ico,woff2}"],
         navigateFallback: "/index.html",
+        importScripts: ["/sw-notification-click.js"],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.hostname.endsWith(".supabase.co"),

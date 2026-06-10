@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import type {
@@ -14,6 +14,7 @@ import { C } from "../design/tokens";
 import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
 import { Avatar } from "../design/Avatar";
 import { playPop } from "../design/sounds";
+import { notify } from "../lib/notifications";
 import { ProfilePickerScreen } from "./ProfilePickerScreen";
 import { CreateMissionSheet } from "./CreateMissionSheet";
 import { ChildView } from "./ChildView";
@@ -118,11 +119,21 @@ export function HomeScreen() {
     void reload();
   }, [familyId]);
 
-  // Realtime: bump the pending-request count the moment a child submits
-  // a new screen-time / cash redemption or one is reviewed.
+  // Realtime: bump the pending-request count and fire a popup notice
+  // the moment a child submits a new mission or a redemption.
+  // Keep the latest children list in a ref so the channel callback can
+  // resolve names without re-subscribing on every reload.
+  const childrenRef = useRef<ChildProfile[]>(children);
+  useEffect(() => {
+    childrenRef.current = children;
+  }, [children]);
+
   useEffect(() => {
     if (!familyId) return;
-    const channel = supabase
+    const childName = (cid: string) =>
+      childrenRef.current.find((c) => c.id === cid)?.nickname ?? "Barnet";
+
+    const redChannel = supabase
       .channel(`redemptions-${familyId}`)
       .on(
         "postgres_changes",
@@ -132,11 +143,57 @@ export function HomeScreen() {
           table: "redemptions",
           filter: `family_id=eq.${familyId}`
         },
-        () => void reload()
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const r = payload.new as {
+              child_id: string;
+              kind: string;
+              minutes: number;
+              mynt_cost: number;
+            };
+            const who = childName(r.child_id);
+            const what =
+              r.kind === "cash_payout"
+                ? `vill växla ${r.mynt_cost} 🪙 till pengar`
+                : `vill ha ${r.minutes} min skärmtid`;
+            notify(`${who} ${what}`, {
+              body: "Tryck för att granska i Att granska-inboxen.",
+              tag: `redemption:${r.child_id}`,
+              url: "/inbox"
+            });
+          }
+          void reload();
+        }
       )
       .subscribe();
+
+    const subChannel = supabase
+      .channel(`submissions-${familyId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "mission_submissions",
+          filter: `family_id=eq.${familyId}`
+        },
+        (payload) => {
+          const s = payload.new as { child_id: string; status?: string };
+          if (s.status && s.status !== "pending") return;
+          const who = childName(s.child_id);
+          notify(`${who} skickade in ett uppdrag`, {
+            body: "Tryck för att granska i Att granska-inboxen.",
+            tag: `submission:${s.child_id}`,
+            url: "/inbox"
+          });
+          void reload();
+        }
+      )
+      .subscribe();
+
     return () => {
-      void supabase.removeChannel(channel);
+      void supabase.removeChannel(redChannel);
+      void supabase.removeChannel(subChannel);
     };
   }, [familyId]);
 

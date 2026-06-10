@@ -10,6 +10,12 @@ import { AddChildSheet } from "./AddChildSheet";
 import { Sheet } from "./Sheet";
 import { BackButton } from "../design/BackButton";
 import { getMuted, setMuted, playPop } from "../design/sounds";
+import {
+  enableNotifications,
+  disableNotifications,
+  notificationsEnabled,
+  notificationsPermission
+} from "../lib/notifications";
 import { CoinRain } from "../design/lottie";
 
 export function SettingsScreen() {
@@ -101,6 +107,9 @@ export function SettingsScreen() {
 
         {/* Wallet adjustment */}
         {children.length > 0 && <WalletAdjustCard children={children} />}
+
+        {/* Notifications */}
+        <NotificationsCard />
 
         {/* Sounds */}
         <SoundsCard />
@@ -467,6 +476,79 @@ const stepBtn: React.CSSProperties = {
   fontSize: 14,
   fontWeight: 700
 };
+
+function NotificationsCard() {
+  const [enabled, setEnabledState] = useState(notificationsEnabled());
+  const [perm, setPerm] = useState(notificationsPermission());
+  const [err, setErr] = useState<string | null>(null);
+
+  async function toggle() {
+    setErr(null);
+    if (enabled) {
+      disableNotifications();
+      setEnabledState(false);
+      return;
+    }
+    const result = await enableNotifications();
+    setPerm(notificationsPermission());
+    if (result.ok) {
+      setEnabledState(true);
+    } else if (result.reason === "denied") {
+      setErr(
+        "Notiser är blockerade i webbläsaren. Tillåt dem för den här sidan i webbläsarens inställningar och prova igen."
+      );
+    } else if (result.reason === "unsupported") {
+      setErr("Den här webbläsaren stödjer inte notiser.");
+    }
+  }
+
+  const unsupported = perm === "unsupported";
+
+  return (
+    <Kort>
+      <h3 style={{ margin: "0 0 8px", color: C.text }}>Notiser</h3>
+      <div
+        role="button"
+        onClick={() => {
+          if (unsupported) return;
+          void toggle();
+        }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "8px 10px",
+          background: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: 10,
+          cursor: unsupported ? "not-allowed" : "pointer",
+          opacity: unsupported ? 0.6 : 1
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={enabled}
+          readOnly
+          disabled={unsupported}
+          style={{ width: 18, height: 18, accentColor: C.gold, margin: 0 }}
+        />
+        <div style={{ flex: 1 }}>
+          <div style={{ color: C.text, fontSize: 13, fontWeight: 600 }}>Skicka popup-notiser</div>
+          <div style={{ color: C.muted, fontSize: 11 }}>
+            Få ett popup-meddelande när barnet skickar in ett uppdrag eller en
+            skärmtids-/pengabegäran.
+          </div>
+        </div>
+      </div>
+      {unsupported && (
+        <p style={{ color: C.muted, fontSize: 11, margin: "8px 0 0" }}>
+          Din webbläsare stödjer inte notiser. På iOS måste appen läggas till på hemskärmen.
+        </p>
+      )}
+      {err && <p style={{ color: C.red, fontSize: 12, margin: "8px 0 0" }}>{err}</p>}
+    </Kort>
+  );
+}
 
 function SoundsCard() {
   const [muted, setMutedState] = useState(getMuted());
