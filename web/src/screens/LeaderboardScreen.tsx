@@ -19,23 +19,17 @@ export function LeaderboardScreen() {
     if (!familyId) return;
     setLoading(true);
     void (async () => {
-      // Fetch opted-in child IDs from child_profiles (column guaranteed to exist).
-      // child_progress.global_leaderboard_opt_in is added by a later migration
-      // and may not exist on older cloud instances, so we filter in JS instead.
-      const { data: cpData } = await supabase
-        .from("child_profiles")
-        .select("id")
-        .eq("family_id", familyId)
-        .eq("global_leaderboard_opt_in", true);
-      const optedIn = new Set((cpData ?? []).map((c) => c.id));
-
+      // The child_progress view computes effective visibility
+      // (family opt-in AND NOT admin-hidden), so filter on the view
+      // column directly.
       const { data, error } = await supabase
         .from("child_progress")
         .select("*")
         .eq("family_id", familyId)
+        .eq("global_leaderboard_opt_in", true)
         .order("mynt_today", { ascending: false });
       if (error) setErr(error.message);
-      else setRows(((data ?? []) as ChildProgress[]).filter((r) => optedIn.has(r.child_id)));
+      else setRows((data ?? []) as ChildProgress[]);
       setLoading(false);
     })();
   }, [familyId]);
