@@ -17,6 +17,18 @@
 --   insert into public.app_admins (user_id, role, note)
 --   values ('<auth-user-uuid>', 'superadmin', 'founder');
 
+-- ─── is_app_admin helper (defined first — policies below need it) ─
+-- Note: we can't reference app_admins yet because the table doesn't
+-- exist, so the function body is created first as a stub that returns
+-- false. Once app_admins exists we CREATE OR REPLACE with the real body.
+create or replace function public.is_app_admin()
+returns boolean
+language sql
+as $$ select false; $$;
+
+revoke all on function public.is_app_admin() from public;
+grant  execute on function public.is_app_admin() to authenticated;
+
 -- ─── app_admins ──────────────────────────────────────────────────
 create table if not exists public.app_admins (
   user_id    uuid primary key references auth.users(id) on delete cascade,
@@ -34,7 +46,7 @@ create policy "admins read admins"
   on public.app_admins for select
   using (public.is_app_admin());
 
--- ─── is_app_admin helper ─────────────────────────────────────────
+-- Now that app_admins exists, swap in the real implementation.
 create or replace function public.is_app_admin()
 returns boolean
 language sql
@@ -45,13 +57,6 @@ as $$
     select 1 from public.app_admins where user_id = auth.uid()
   );
 $$;
-
-revoke all on function public.is_app_admin() from public;
-grant  execute on function public.is_app_admin() to authenticated;
-
--- The policy above references the function, so (re)create the policy
--- after the function exists. Postgres validates at runtime so the
--- ordering above is fine, but keep both in this migration regardless.
 
 -- ─── moderation flag on child_profiles ───────────────────────────
 alter table public.child_profiles
