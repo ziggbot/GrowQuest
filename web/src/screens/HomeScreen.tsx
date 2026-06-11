@@ -15,6 +15,7 @@ import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
 import { Avatar } from "../design/Avatar";
 import { playPop } from "../design/sounds";
 import { notify } from "../lib/notifications";
+import { computeMissionVisibility } from "../lib/missions";
 import { ProfilePickerScreen } from "./ProfilePickerScreen";
 import { CreateMissionSheet } from "./CreateMissionSheet";
 import { ChildView } from "./ChildView";
@@ -29,6 +30,11 @@ export function HomeScreen() {
   const [profile, setProfile] = useState<ProfileConfig | null>(null);
   const [children, setChildren] = useState<ChildProfile[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
+  const [submissions, setSubmissions] = useState<
+    ReadonlyArray<
+      Pick<MissionSubmission, "mission_id" | "child_id" | "status" | "submitted_at" | "reviewed_at">
+    >
+  >([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingRedemptionsCount, setPendingRedemptionsCount] = useState(0);
   const [todaySubs, setTodaySubs] = useState<TodaySubMap>({});
@@ -68,29 +74,42 @@ export function HomeScreen() {
       // parent's auto-approve window. Silently ignore if the migration
       // hasn't shipped yet.
       void supabase.rpc("auto_approve_stale", { p_family_id: familyId });
-      const startOfToday = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
-      const [pcRes, kidsRes, mRes, pRes, todayRes, rRes] = await Promise.all([
+      const now = new Date();
+      const startOfToday = new Date(now.setHours(0, 0, 0, 0));
+      const startOfTodayIso = startOfToday.toISOString();
+      // 30 days back covers daily / weekly visibility checks; once-missions
+      // older than that are already hidden by the created_at < today rule.
+      const lookback = new Date(startOfToday);
+      lookback.setDate(lookback.getDate() - 30);
+      const [pcRes, kidsRes, mRes, pRes, subsRes, rRes] = await Promise.all([
         supabase.from("profile_configs").select("*").eq("family_id", familyId).maybeSingle(),
         supabase.from("child_profiles").select("*").eq("family_id", familyId).order("created_at"),
         supabase.from("missions").select("*").eq("family_id", familyId).eq("active", true),
         supabase.from("mission_submissions").select("id").eq("family_id", familyId).eq("status", "pending"),
         supabase
           .from("mission_submissions")
-          .select("mission_id, child_id, status")
+          .select("mission_id, child_id, status, submitted_at, reviewed_at")
           .eq("family_id", familyId)
-          .gte("submitted_at", startOfToday),
+          .gte("submitted_at", lookback.toISOString()),
         supabase.from("redemptions").select("id").eq("family_id", familyId).eq("status", "pending")
       ]);
       if (pcRes.error && pcRes.error.code !== "PGRST116") throw pcRes.error;
       if (kidsRes.error) throw kidsRes.error;
       if (mRes.error) throw mRes.error;
       if (pRes.error) throw pRes.error;
-      if (todayRes.error) throw todayRes.error;
+      if (subsRes.error) throw subsRes.error;
       // Soft-tolerate redemptions status not being on cloud yet.
       const redemptionsRows = rRes.error ? [] : rRes.data ?? [];
 
+      const allSubs = (subsRes.data ?? []) as Pick<
+        MissionSubmission,
+        "mission_id" | "child_id" | "status" | "submitted_at" | "reviewed_at"
+      >[];
+
+      // Today's status pill per (child, mission) — only today's submissions.
       const subMap: TodaySubMap = {};
-      for (const sub of (todayRes.data ?? []) as Pick<MissionSubmission, "mission_id" | "child_id" | "status">[]) {
+      for (const sub of allSubs) {
+        if (new Date(sub.submitted_at) < startOfToday) continue;
         if (!subMap[sub.child_id]) subMap[sub.child_id] = {};
         const existing = subMap[sub.child_id][sub.mission_id];
         if (
@@ -105,6 +124,7 @@ export function HomeScreen() {
       setProfile(pcRes.data as ProfileConfig | null);
       setChildren((kidsRes.data ?? []) as ChildProfile[]);
       setMissions((mRes.data ?? []) as Mission[]);
+      setSubmissions(allSubs);
       setPendingCount(pRes.data?.length ?? 0);
       setPendingRedemptionsCount(redemptionsRows.length);
       setTodaySubs(subMap);
@@ -334,6 +354,7 @@ export function HomeScreen() {
           <ParentDashboard
             children={children}
             missions={missions}
+            submissions={submissions}
             pendingCount={pendingCount}
             pendingRedemptionsCount={pendingRedemptionsCount}
             todaySubs={todaySubs}
@@ -406,6 +427,7 @@ function Tab({
 function ParentDashboard({
   children,
   missions,
+  submissions,
   pendingCount,
   pendingRedemptionsCount,
   todaySubs,
@@ -418,6 +440,9 @@ function ParentDashboard({
 }: {
   children: ChildProfile[];
   missions: Mission[];
+  submissions: ReadonlyArray<
+    Pick<MissionSubmission, "mission_id" | "child_id" | "status" | "submitted_at" | "reviewed_at">
+  >;
   pendingCount: number;
   pendingRedemptionsCount: number;
   todaySubs: TodaySubMap;
@@ -493,7 +518,14 @@ function ParentDashboard({
         ) : (
           <div style={{ display: "grid", gap: 14 }}>
             {children.map((c) => {
-              const childMissions = missions.filter((m) => m.assigned_child_id === c.id);
+              // Same visibility rules as the child sees on their own tab —
+              // hides once-missions from previous days, daily/weekly that
+              // are already done for this period, etc.
+              const { visible: childMissions } = computeMissionVisibility(
+                missions,
+                submissions,
+                c.id
+              );
               if (childMissions.length === 0) return null;
               return (
                 <ChildMissionGroup

@@ -8,6 +8,7 @@ import { KortKid, PillKid } from "../design/components";
 import { MissionHistorySheet } from "./MissionHistorySheet";
 import { JumperAnimation, CoinRain } from "../design/lottie";
 import { computeStreak } from "../lib/streak";
+import { computeMissionVisibility } from "../lib/missions";
 
 export function ChildView({
   child,
@@ -40,11 +41,6 @@ export function ChildView({
       const now = new Date();
       const startOfToday = new Date(now);
       startOfToday.setHours(0, 0, 0, 0);
-      // ISO week start (Monday)
-      const startOfWeek = new Date(now);
-      const dow = (startOfWeek.getDay() + 6) % 7; // 0 = Monday
-      startOfWeek.setDate(startOfWeek.getDate() - dow);
-      startOfWeek.setHours(0, 0, 0, 0);
 
       const lookback = new Date(now);
       lookback.setDate(lookback.getDate() - 30);
@@ -86,48 +82,21 @@ export function ChildView({
       setMyntToday(earnedToday);
 
       const allMissions = (mRes.data ?? []) as Mission[];
-      const allSubs = (sRes.data ?? []) as Pick<
+      const allSubs = ((sRes.data ?? []) as Pick<
         MissionSubmission,
         "mission_id" | "status" | "submitted_at" | "reviewed_at"
-      >[];
+      >[]).map((s) => ({ ...s, child_id: child.id }));
 
-      const todaySubmitted = new Set<string>();
-      const hiddenApproved = new Set<string>();
-      const todayApproved = new Set<string>();
-
-      for (const sub of allSubs) {
-        if (new Date(sub.submitted_at) >= startOfToday) {
-          todaySubmitted.add(sub.mission_id);
-        }
-        if (sub.status !== "approved") continue;
-        const mission = allMissions.find((m) => m.id === sub.mission_id);
-        if (!mission) continue;
-        const reviewed = sub.reviewed_at ? new Date(sub.reviewed_at) : null;
-        if (mission.recurrence === "once") {
-          hiddenApproved.add(sub.mission_id);
-          todayApproved.add(sub.mission_id);
-        } else if (mission.recurrence === "daily" && reviewed && reviewed >= startOfToday) {
-          hiddenApproved.add(sub.mission_id);
-          todayApproved.add(sub.mission_id);
-        } else if (mission.recurrence === "weekly" && reviewed && reviewed >= startOfWeek) {
-          hiddenApproved.add(sub.mission_id);
-          todayApproved.add(sub.mission_id);
-        }
-      }
-
-      const visible = allMissions.filter((m) => {
-        if (m.assigned_child_id !== null && m.assigned_child_id !== child.id) return false;
-        if (hiddenApproved.has(m.id)) return false;
-        // "once" missions are for the day they were created; after midnight
-        // they disappear from the active list and surface in history as
-        // "ej utfört" if never done.
-        if (m.recurrence === "once" && new Date(m.created_at) < startOfToday) return false;
-        return true;
-      });
+      const { visible, submittedTodayIds, approvedTodayIds } = computeMissionVisibility(
+        allMissions,
+        allSubs,
+        child.id,
+        now
+      );
 
       setMissions(visible);
-      setSubmittedToday(todaySubmitted);
-      setApprovedToday(todayApproved);
+      setSubmittedToday(submittedTodayIds);
+      setApprovedToday(approvedTodayIds);
     } catch (e) {
       setErr((e as Error).message);
     } finally {
