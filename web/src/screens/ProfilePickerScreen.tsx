@@ -47,11 +47,36 @@ export function ProfilePickerScreen({
   return (
     <ScreenContainer>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
-        <h2 style={{ color: C.text, fontSize: 26, margin: "8px 0 4px", fontWeight: 800 }}>
-          Välj din profil
-        </h2>
-        <p style={{ color: C.muted, fontSize: 13, margin: "0 0 16px" }}>
-          Du kan ändra detta när som helst i inställningarna.
+        {/* Welcome / positioning */}
+        <div
+          style={{
+            background: `linear-gradient(135deg, ${C.gold}22, ${C.green}1f)`,
+            border: `1px solid ${C.gold}55`,
+            borderRadius: 18,
+            padding: 18,
+            marginBottom: 18
+          }}
+        >
+          <div style={{ fontSize: 28, marginBottom: 6 }}>🌳</div>
+          <h2 style={{ color: C.text, fontSize: 22, margin: "0 0 6px", fontWeight: 800 }}>
+            Välkommen till GrowQuest
+          </h2>
+          <p style={{ color: C.text, fontSize: 14, margin: "0 0 8px", lineHeight: 1.5 }}>
+            GrowQuest är <strong>inte</strong> en app som stoppar skärmtid. Det är en app som
+            gör att barn vill <strong>röra på sig, hjälpa till och skapa</strong> innan de
+            sätter sig med skärmen.
+          </p>
+          <p style={{ color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.4 }}>
+            Barnet förtjänar mynt genom uppdrag. 1 mynt = 1 minut skärmtid. Föräldern
+            bestämmer reglerna; barnet bygger vanor.
+          </p>
+        </div>
+
+        <h3 style={{ color: C.text, fontSize: 18, margin: "8px 0 4px", fontWeight: 800 }}>
+          Välj din familjs profil
+        </h3>
+        <p style={{ color: C.muted, fontSize: 12, margin: "0 0 14px" }}>
+          Styr hur generös ekonomin är. Allt går att finjustera senare i Inställningar.
         </p>
 
         <div style={{ display: "grid", gap: 12 }}>

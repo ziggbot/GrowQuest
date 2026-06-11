@@ -82,7 +82,8 @@ export function RedeemSheet({
         <Kort>
           <div style={{ textAlign: "center" }}>
             <div style={{ fontSize: 14, color: C.muted }}>
-              {child.avatar_emoji} {child.nickname} skickar en begäran till föräldern.
+              Bra jobbat idag, {child.nickname}! Du växlar mynt mot skärmtid — föräldern
+              godkänner.
             </div>
           </div>
         </Kort>
@@ -180,11 +181,11 @@ export function RedeemSheet({
 
         <Kort>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 11, color: C.muted }}>Kostnad</div>
+            <div style={{ fontSize: 11, color: C.muted }}>Du växlar in</div>
             <div style={{ fontSize: 32, fontWeight: 800, color: C.gold }}>{cost} 🪙</div>
-            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Kvar idag: {leftToday} min</div>
+            <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>Kvar att växla idag: {leftToday} min</div>
             <div style={{ fontSize: 11, color: C.muted, marginTop: 4 }}>
-              Mynten dras direkt och återbetalas om föräldern avslår.
+              Mynten dras direkt — om föräldern säger nej får du tillbaka dem.
             </div>
           </div>
         </Kort>

@@ -322,13 +322,14 @@ export function ChildView({
           >
             <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 6 }}>🎉</div>
             <h3 style={{ margin: "0 0 6px", color: CK.text, fontWeight: 800, fontSize: 18 }}>
-              Klart för idag!
+              Du växte idag!
             </h3>
             <p style={{ color: CK.text, fontSize: 14, margin: "0 0 10px" }}>
-              Du har klarat {approvedToday.size} uppdrag och tjänat <strong>{myntToday} 🪙</strong>.
+              {approvedToday.size} uppdrag avklarade — du har förtjänat <strong>{myntToday} 🪙</strong>{" "}
+              skärmtid när du vill.
             </p>
             <p style={{ color: CK.textSoft, fontSize: 13, margin: 0, fontStyle: "italic" }}>
-              Lägg ifrån dig telefonen och kom tillbaka i morgon. 💪
+              Nu kan du njuta av en stund framför skärmen — eller fortsätta leva livet. 💪
             </p>
           </KortKid>
         )}

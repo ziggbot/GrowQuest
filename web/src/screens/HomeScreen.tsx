@@ -155,9 +155,9 @@ export function HomeScreen() {
             const what =
               r.kind === "cash_payout"
                 ? `vill växla ${r.mynt_cost} 🪙 till pengar`
-                : `vill ha ${r.minutes} min skärmtid`;
+                : `förtjänade ${r.minutes} min skärmtid`;
             notify(`${who} ${what}`, {
-              body: "Tryck för att granska i Att granska-inboxen.",
+              body: "Tryck för att godkänna.",
               tag: `redemption:${r.child_id}`,
               url: "/inbox"
             });
@@ -181,8 +181,8 @@ export function HomeScreen() {
           const s = payload.new as { child_id: string; status?: string };
           if (s.status && s.status !== "pending") return;
           const who = childName(s.child_id);
-          notify(`${who} skickade in ett uppdrag`, {
-            body: "Tryck för att granska i Att granska-inboxen.",
+          notify(`🌟 ${who} klarade ett uppdrag!`, {
+            body: "Tryck för att titta och godkänna.",
             tag: `submission:${s.child_id}`,
             url: "/inbox"
           });
