@@ -24,12 +24,14 @@ export function AddChildSheet({
   familyId,
   editing,
   onClose,
-  onSaved
+  onSaved,
+  onDeleted
 }: {
   familyId: string;
   editing?: ChildProfile;
   onClose: () => void;
   onSaved: (c: ChildProfile) => void;
+  onDeleted?: (childId: string) => void;
 }) {
   const [nickname, setNickname] = useState(editing?.nickname ?? "");
   const [avatar, setAvatar] = useState<string>(editing?.avatar_emoji ?? AVATARER[0]);
@@ -45,6 +47,7 @@ export function AddChildSheet({
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
   const [resetMsg, setResetMsg] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -108,6 +111,31 @@ export function AddChildSheet({
     } finally {
       setInviting(false);
     }
+  }
+
+  async function deleteChild() {
+    if (!editing) return;
+    const name = editing.nickname;
+    const typed = window.prompt(
+      `Detta raderar ${name} och ALL data permanent (GDPR). Skriv barnets namn för att bekräfta:`
+    );
+    if (typed === null) return;
+    if (typed.trim().toLowerCase() !== name.trim().toLowerCase()) {
+      setErr("Namnet stämde inte — inget raderades.");
+      return;
+    }
+    setDeleting(true);
+    setErr(null);
+    const { error } = await supabase.rpc("delete_child_completely", {
+      p_child_id: editing.id
+    });
+    setDeleting(false);
+    if (error) {
+      setErr(error.message);
+      return;
+    }
+    onDeleted?.(editing.id);
+    onClose();
   }
 
   async function resetChildPassword() {
@@ -533,6 +561,35 @@ export function AddChildSheet({
           onClick={save}
           disabled={!canSubmit}
         />
+
+        {isEditing && (
+          <Kort style={{ border: `1px solid ${C.red}44` }}>
+            <h3 style={{ margin: "0 0 4px", color: C.red, fontSize: 14 }}>Radera barn (GDPR)</h3>
+            <p style={{ color: C.muted, fontSize: 12, margin: "0 0 10px", lineHeight: 1.45 }}>
+              Tar bort {nickname || "barnet"} och ALL data permanent: plånbok, uppdragshistorik,
+              foton, sparmål och begäran. Kan inte ångras.
+            </p>
+            <button
+              type="button"
+              onClick={() => void deleteChild()}
+              disabled={deleting}
+              style={{
+                width: "100%",
+                background: "transparent",
+                border: `1px solid ${C.red}`,
+                borderRadius: 12,
+                padding: "10px 14px",
+                color: C.red,
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: "pointer",
+                opacity: deleting ? 0.5 : 1
+              }}
+            >
+              {deleting ? "Raderar…" : "🗑 Radera barnet permanent"}
+            </button>
+          </Kort>
+        )}
       </div>
     </Sheet>
   );

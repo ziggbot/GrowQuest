@@ -48,6 +48,7 @@ export function WalletScreen() {
   const [showRedeem, setShowRedeem] = useState(false);
   const [showCash, setShowCash] = useState(false);
   const [showCreateGoal, setShowCreateGoal] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<SavingsGoal | null>(null);
   const [goals, setGoals] = useState<(SavingsGoal & { saved: number })[]>([]);
   const [cashHistory, setCashHistory] = useState<Redemption[]>([]);
   const [screenTimeHistory, setScreenTimeHistory] = useState<Redemption[]>([]);
@@ -146,6 +147,39 @@ export function WalletScreen() {
   useEffect(() => {
     void reload();
   }, [familyId, childId]);
+
+  async function reviewGoal(g: SavingsGoal, action: "approve" | "reject") {
+    const { error } = await supabase.rpc("review_savings_goal", {
+      p_goal_id: g.id,
+      p_action: action
+    });
+    if (error) setErr(error.message);
+    else void reload();
+  }
+
+  async function deleteGoal(g: SavingsGoal) {
+    const saved = goals.find((x) => x.id === g.id)?.saved ?? 0;
+    const note =
+      saved > 0
+        ? `Ta bort "${g.title}"? De ${saved} 🪙 som sparats återgår till plånboken.`
+        : `Ta bort "${g.title}"?`;
+    if (!window.confirm(note)) return;
+    // Return any saved coins to the wallet before removing the goal —
+    // otherwise the deposits would vanish with the FK.
+    if (saved > 0) {
+      const { error: wErr } = await supabase.rpc("withdraw_from_savings", {
+        p_goal_id: g.id,
+        p_amount: saved
+      });
+      if (wErr) {
+        setErr(wErr.message);
+        return;
+      }
+    }
+    const { error } = await supabase.from("savings_goals").delete().eq("id", g.id);
+    if (error) setErr(error.message);
+    else void reload();
+  }
 
   if (!child && !loading) {
     const Container = isChildMode ? ChildScreenContainer : ScreenContainer;
@@ -257,11 +291,12 @@ export function WalletScreen() {
             </div>
           )}
 
-          {goals.length > 0 && (
-            <KortKid style={{ marginTop: 14 }}>
+          <KortKid style={{ marginTop: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 10 }}>
               <h3
                 style={{
-                  margin: "0 0 10px",
+                  margin: 0,
+                  flex: 1,
                   color: CK.text,
                   fontSize: 13,
                   fontWeight: 800,
@@ -271,20 +306,51 @@ export function WalletScreen() {
               >
                 Sparmål
               </h3>
-              <div style={{ display: "grid", gap: 10 }}>
-                {goals.map((g) => {
-                  const pct = Math.min(100, Math.round((g.saved / g.target_mynt) * 100));
-                  return (
-                    <div key={g.id}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                        <span style={{ fontSize: 22 }}>{g.emoji}</span>
-                        <span style={{ flex: 1, fontWeight: 700, color: CK.text, fontSize: 14 }}>
-                          {g.title}
+              <button
+                onClick={() => setShowCreateGoal(true)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: CK.gold,
+                  fontWeight: 700,
+                  cursor: "pointer",
+                  fontSize: 13,
+                  padding: 0
+                }}
+              >
+                + Föreslå mål
+              </button>
+            </div>
+            {goals.length === 0 && (
+              <p style={{ color: CK.muted, fontSize: 12, margin: 0 }}>
+                Inga sparmål än — föreslå ett du vill spara till!
+              </p>
+            )}
+            <div style={{ display: "grid", gap: 10 }}>
+              {goals.map((g) => {
+                const pct = Math.min(100, Math.round((g.saved / g.target_mynt) * 100));
+                const pending = g.status === "pending";
+                const rejected = g.status === "rejected";
+                return (
+                  <div key={g.id} style={{ opacity: rejected ? 0.55 : 1 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontSize: 22 }}>{g.emoji}</span>
+                      <span style={{ flex: 1, fontWeight: 700, color: CK.text, fontSize: 14 }}>
+                        {g.title}
+                      </span>
+                      {pending ? (
+                        <span style={{ color: CK.purple, fontWeight: 700, fontSize: 11 }}>
+                          ⏳ Väntar på OK
                         </span>
+                      ) : rejected ? (
+                        <span style={{ color: CK.red, fontWeight: 700, fontSize: 11 }}>Nekad</span>
+                      ) : (
                         <span style={{ color: CK.gold, fontWeight: 700, fontSize: 13 }}>
                           {g.saved}/{g.target_mynt} 🪙
                         </span>
-                      </div>
+                      )}
+                    </div>
+                    {!pending && !rejected && (
                       <div
                         style={{
                           height: 10,
@@ -304,7 +370,9 @@ export function WalletScreen() {
                           }}
                         />
                       </div>
-                      {pct < 100 && balance > 0 && (
+                    )}
+                    <div style={{ display: "flex", gap: 8, marginTop: 6, alignItems: "center" }}>
+                      {!pending && !rejected && pct < 100 && balance > 0 && (
                         <button
                           onClick={async () => {
                             const deposit = Math.min(balance, g.target_mynt - g.saved);
@@ -317,7 +385,6 @@ export function WalletScreen() {
                             else void reload();
                           }}
                           style={{
-                            marginTop: 6,
                             background: "transparent",
                             border: `1px solid ${CK.border}`,
                             borderRadius: 10,
@@ -331,17 +398,48 @@ export function WalletScreen() {
                           Spara {Math.min(balance, g.target_mynt - g.saved)} 🪙
                         </button>
                       )}
-                      {pct >= 100 && (
-                        <div style={{ color: CK.green, fontSize: 12, fontWeight: 700, marginTop: 4 }}>
-                          Målet nått!
-                        </div>
+                      {pct >= 100 && !pending && !rejected && (
+                        <span style={{ color: CK.green, fontSize: 12, fontWeight: 700 }}>
+                          Målet nått! 🎉
+                        </span>
                       )}
+                      <span style={{ flex: 1 }} />
+                      <button
+                        onClick={() => setEditingGoal(g)}
+                        aria-label={`Ändra ${g.title}`}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: CK.muted,
+                          cursor: "pointer",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          padding: 0
+                        }}
+                      >
+                        ✏️ Ändra
+                      </button>
+                      <button
+                        onClick={() => void deleteGoal(g)}
+                        aria-label={`Ta bort ${g.title}`}
+                        style={{
+                          background: "transparent",
+                          border: "none",
+                          color: CK.red,
+                          cursor: "pointer",
+                          fontSize: 12,
+                          fontWeight: 700,
+                          padding: 0
+                        }}
+                      >
+                        🗑 Ta bort
+                      </button>
                     </div>
-                  );
-                })}
-              </div>
-            </KortKid>
-          )}
+                  </div>
+                );
+              })}
+            </div>
+          </KortKid>
 
           <KortKid style={{ marginTop: 14 }}>
             <h3
@@ -401,9 +499,37 @@ export function WalletScreen() {
             <CashRedeemSheet
               child={child}
               balance={balance}
+              goals={goals.filter((g) => g.status === "approved" && g.saved < g.target_mynt)}
               onClose={() => setShowCash(false)}
               onRedeemed={() => {
                 setShowCash(false);
+                void reload();
+              }}
+            />
+          )}
+
+          {showCreateGoal && child && familyId && (
+            <CreateSavingsGoalSheet
+              familyId={familyId}
+              childId={child.id}
+              asChild
+              onClose={() => setShowCreateGoal(false)}
+              onSaved={() => {
+                setShowCreateGoal(false);
+                void reload();
+              }}
+            />
+          )}
+
+          {editingGoal && child && familyId && (
+            <CreateSavingsGoalSheet
+              familyId={familyId}
+              childId={child.id}
+              editing={editingGoal}
+              asChild={isChildMode}
+              onClose={() => setEditingGoal(null)}
+              onSaved={() => {
+                setEditingGoal(null);
                 void reload();
               }}
             />
@@ -481,39 +607,93 @@ export function WalletScreen() {
                 + Nytt mål
               </button>
             </div>
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gap: 12 }}>
               {goals.map((g) => {
                 const pct = Math.min(100, Math.round((g.saved / g.target_mynt) * 100));
+                const pending = g.status === "pending";
+                const rejected = g.status === "rejected";
                 return (
-                  <div key={g.id}>
+                  <div key={g.id} style={{ opacity: rejected ? 0.55 : 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                       <span style={{ fontSize: 20 }}>{g.emoji}</span>
                       <span style={{ flex: 1, fontWeight: 700, fontSize: 14 }}>{g.title}</span>
-                      <span style={{ color: C.gold, fontWeight: 700, fontSize: 13 }}>
-                        {g.saved}/{g.target_mynt} 🪙
-                      </span>
+                      {pending ? (
+                        <Pill text="Förslag" tint={C.purple} />
+                      ) : rejected ? (
+                        <Pill text="Nekad" tint={C.red} />
+                      ) : (
+                        <span style={{ color: C.gold, fontWeight: 700, fontSize: 13 }}>
+                          {g.saved}/{g.target_mynt} 🪙
+                        </span>
+                      )}
                     </div>
-                    <div
-                      style={{
-                        height: 8,
-                        borderRadius: 4,
-                        background: C.surfaceHov,
-                        overflow: "hidden"
-                      }}
-                    >
-                      <div
-                        style={{
-                          height: "100%",
-                          width: `${pct}%`,
-                          borderRadius: 4,
-                          background: pct >= 100 ? C.green : C.gold
-                        }}
-                      />
-                    </div>
-                    {pct >= 100 && (
-                      <div style={{ color: C.green, fontSize: 12, fontWeight: 700, marginTop: 4 }}>
-                        Målet nått!
+                    {pending ? (
+                      <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+                        <Knapp
+                          title="Neka"
+                          style="secondary"
+                          onClick={() => void reviewGoal(g, "reject")}
+                        />
+                        <Knapp title="Godkänn" onClick={() => void reviewGoal(g, "approve")} />
                       </div>
+                    ) : (
+                      <>
+                        {!rejected && (
+                          <div
+                            style={{
+                              height: 8,
+                              borderRadius: 4,
+                              background: C.surfaceHov,
+                              overflow: "hidden"
+                            }}
+                          >
+                            <div
+                              style={{
+                                height: "100%",
+                                width: `${pct}%`,
+                                borderRadius: 4,
+                                background: pct >= 100 ? C.green : C.gold
+                              }}
+                            />
+                          </div>
+                        )}
+                        <div style={{ display: "flex", gap: 10, marginTop: 4, alignItems: "center" }}>
+                          {pct >= 100 && !rejected && (
+                            <span style={{ color: C.green, fontSize: 12, fontWeight: 700 }}>
+                              Målet nått!
+                            </span>
+                          )}
+                          <span style={{ flex: 1 }} />
+                          <button
+                            onClick={() => setEditingGoal(g)}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: C.muted,
+                              cursor: "pointer",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              padding: 0
+                            }}
+                          >
+                            ✏️ Ändra
+                          </button>
+                          <button
+                            onClick={() => void deleteGoal(g)}
+                            style={{
+                              background: "transparent",
+                              border: "none",
+                              color: C.red,
+                              cursor: "pointer",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              padding: 0
+                            }}
+                          >
+                            🗑 Ta bort
+                          </button>
+                        </div>
+                      </>
                     )}
                   </div>
                 );
@@ -713,6 +893,19 @@ export function WalletScreen() {
             onClose={() => setShowCreateGoal(false)}
             onSaved={() => {
               setShowCreateGoal(false);
+              void reload();
+            }}
+          />
+        )}
+
+        {editingGoal && child && familyId && (
+          <CreateSavingsGoalSheet
+            familyId={familyId}
+            childId={child.id}
+            editing={editingGoal}
+            onClose={() => setEditingGoal(null)}
+            onSaved={() => {
+              setEditingGoal(null);
               void reload();
             }}
           />

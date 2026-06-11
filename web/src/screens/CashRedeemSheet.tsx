@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import type { ChildProfile } from "../lib/types";
+import type { ChildProfile, SavingsGoal } from "../lib/types";
 import { C } from "../design/tokens";
 import { Kort, Knapp } from "../design/components";
 import { Sheet } from "./Sheet";
@@ -10,19 +10,24 @@ const QUICK_AMOUNTS = [10, 25, 50, 100];
 export function CashRedeemSheet({
   child,
   balance,
+  goals = [],
   onClose,
   onRedeemed
 }: {
   child: ChildProfile;
   balance: number;
+  goals?: (SavingsGoal & { saved: number })[];
   onClose: () => void;
   onRedeemed: () => void;
 }) {
   const [amount, setAmount] = useState(25);
+  // null = parent payout, otherwise the savings goal to deposit into.
+  const [targetGoalId, setTargetGoalId] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const canSubmit = !working && amount > 0 && amount <= balance;
+  const targetGoal = goals.find((g) => g.id === targetGoalId) ?? null;
 
   async function submit() {
     if (!canSubmit) return;
@@ -31,7 +36,8 @@ export function CashRedeemSheet({
     try {
       const { error } = await supabase.rpc("redeem_cash", {
         p_child_id: child.id,
-        p_mynt_amount: amount
+        p_mynt_amount: amount,
+        p_goal_id: targetGoalId
       });
       if (error) throw error;
       onRedeemed();
@@ -47,7 +53,76 @@ export function CashRedeemSheet({
       <div style={{ display: "grid", gap: 14 }}>
         <Kort>
           <div style={{ textAlign: "center", color: C.muted, fontSize: 14 }}>
-            {child.avatar_emoji} {child.nickname} begär att växla mynt.
+            Bra jobbat, {child.nickname}! Välj vart pengarna ska gå.
+          </div>
+        </Kort>
+
+        <Kort>
+          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>
+            Vart ska mynten?
+          </label>
+          <div style={{ display: "grid", gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => setTargetGoalId(null)}
+              style={{
+                padding: "10px 12px",
+                background: targetGoalId === null ? `${C.gold}22` : C.surfaceHov,
+                border: `${targetGoalId === null ? 2 : 1}px solid ${
+                  targetGoalId === null ? C.gold : C.border
+                }`,
+                borderRadius: 12,
+                cursor: "pointer",
+                color: C.text,
+                fontWeight: 700,
+                fontSize: 13,
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                textAlign: "left"
+              }}
+            >
+              <span style={{ fontSize: 20 }}>💵</span>
+              <div style={{ flex: 1 }}>
+                <div>Pengar från föräldern</div>
+                <div style={{ color: C.muted, fontSize: 11, fontWeight: 400 }}>
+                  Föräldern godkänner och betalar ut
+                </div>
+              </div>
+            </button>
+            {goals.map((g) => {
+              const isOn = targetGoalId === g.id;
+              const room = g.target_mynt - g.saved;
+              return (
+                <button
+                  key={g.id}
+                  type="button"
+                  onClick={() => setTargetGoalId(g.id)}
+                  style={{
+                    padding: "10px 12px",
+                    background: isOn ? `${C.gold}22` : C.surfaceHov,
+                    border: `${isOn ? 2 : 1}px solid ${isOn ? C.gold : C.border}`,
+                    borderRadius: 12,
+                    cursor: "pointer",
+                    color: C.text,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    textAlign: "left"
+                  }}
+                >
+                  <span style={{ fontSize: 20 }}>{g.emoji}</span>
+                  <div style={{ flex: 1 }}>
+                    <div>{g.title}</div>
+                    <div style={{ color: C.muted, fontSize: 11, fontWeight: 400 }}>
+                      {g.saved}/{g.target_mynt} 🪙 — {room} kvar till målet
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </Kort>
 
@@ -111,12 +186,18 @@ export function CashRedeemSheet({
 
         <Kort>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 11, color: C.muted }}>Begäran skickas till föräldern</div>
+            <div style={{ fontSize: 11, color: C.muted }}>
+              {targetGoal
+                ? `Sparas direkt i "${targetGoal.title}"`
+                : "Begäran skickas till föräldern"}
+            </div>
             <div style={{ fontSize: 32, fontWeight: 800, color: C.gold, marginTop: 4 }}>
               {amount} 🪙
             </div>
             <div style={{ fontSize: 12, color: C.muted, marginTop: 6 }}>
-              Saldo: {balance} 🪙 — mynten dras direkt, återbetalas vid avslag.
+              {targetGoal
+                ? `Saldo: ${balance} 🪙 — mynten flyttas till sparmålet på en gång.`
+                : `Saldo: ${balance} 🪙 — mynten dras direkt, om föräldern säger nej får du tillbaka dem.`}
             </div>
           </div>
         </Kort>
@@ -127,7 +208,13 @@ export function CashRedeemSheet({
         {err && <p style={{ color: C.red, fontSize: 13, margin: 0 }}>{err}</p>}
 
         <Knapp
-          title={working ? "Skickar…" : "Skicka begäran"}
+          title={
+            working
+              ? "Skickar…"
+              : targetGoal
+              ? `Spara mot ${targetGoal.emoji} ${targetGoal.title}`
+              : "Skicka begäran"
+          }
           onClick={submit}
           disabled={!canSubmit}
         />

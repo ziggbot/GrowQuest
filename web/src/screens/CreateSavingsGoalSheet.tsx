@@ -10,20 +10,27 @@ const EMOJIS = ["🎯", "🚲", "🎮", "📱", "⚽", "🎁", "🏖️", "🎵"
 export function CreateSavingsGoalSheet({
   familyId,
   childId,
+  editing,
+  asChild = false,
   onClose,
   onSaved
 }: {
   familyId: string;
   childId: string;
+  editing?: SavingsGoal;
+  // True when the kid opens this sheet themselves: new goals are
+  // proposals (status pending) and edits reset status for re-approval.
+  asChild?: boolean;
   onClose: () => void;
   onSaved: (g: SavingsGoal) => void;
 }) {
-  const [title, setTitle] = useState("");
-  const [target, setTarget] = useState(100);
-  const [emoji, setEmoji] = useState("🎯");
+  const [title, setTitle] = useState(editing?.title ?? "");
+  const [target, setTarget] = useState(editing?.target_mynt ?? 100);
+  const [emoji, setEmoji] = useState(editing?.emoji ?? "🎯");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
+  const isEditing = !!editing;
   const canSubmit = !saving && title.trim().length >= 1 && target > 0;
 
   async function save() {
@@ -31,17 +38,25 @@ export function CreateSavingsGoalSheet({
     setSaving(true);
     setErr(null);
     try {
-      const { data, error } = await supabase
-        .from("savings_goals")
-        .insert({
-          family_id: familyId,
-          child_id: childId,
-          title: title.trim(),
-          target_mynt: target,
-          emoji
-        })
-        .select()
-        .single();
+      const fields = {
+        title: title.trim(),
+        target_mynt: target,
+        emoji,
+        // Kid-proposed / kid-edited goals need (re-)approval.
+        ...(asChild ? { status: "pending" as const, proposed_by_child: true } : {})
+      };
+      const { data, error } = isEditing
+        ? await supabase
+            .from("savings_goals")
+            .update(fields)
+            .eq("id", editing!.id)
+            .select()
+            .single()
+        : await supabase
+            .from("savings_goals")
+            .insert({ family_id: familyId, child_id: childId, ...fields })
+            .select()
+            .single();
       if (error) throw error;
       onSaved(data as SavingsGoal);
     } catch (e) {
@@ -52,7 +67,10 @@ export function CreateSavingsGoalSheet({
   }
 
   return (
-    <Sheet title="Nytt sparmål" onClose={onClose}>
+    <Sheet
+      title={isEditing ? "Ändra sparmål" : asChild ? "Föreslå sparmål" : "Nytt sparmål"}
+      onClose={onClose}
+    >
       <div style={{ display: "grid", gap: 14 }}>
         <Kort>
           <div style={{ display: "grid", gap: 10 }}>
@@ -124,7 +142,15 @@ export function CreateSavingsGoalSheet({
         {err && <p style={{ color: C.red, fontSize: 13, margin: 0 }}>{err}</p>}
 
         <Knapp
-          title={saving ? "Sparar…" : "Skapa sparmål"}
+          title={
+            saving
+              ? "Sparar…"
+              : isEditing
+              ? "Spara ändringar"
+              : asChild
+              ? "Skicka förslag"
+              : "Skapa sparmål"
+          }
           onClick={save}
           disabled={!canSubmit}
         />

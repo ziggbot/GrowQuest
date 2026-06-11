@@ -127,6 +127,8 @@ export interface Redemption {
   reviewed_at: string | null;
 }
 
+export type SavingsGoalStatus = "pending" | "approved" | "rejected";
+
 export interface SavingsGoal {
   id: string;
   family_id: string;
@@ -134,6 +136,8 @@ export interface SavingsGoal {
   title: string;
   target_mynt: number;
   emoji: string;
+  status: SavingsGoalStatus;
+  proposed_by_child: boolean;
   created_by: string | null;
   created_at: string;
 }

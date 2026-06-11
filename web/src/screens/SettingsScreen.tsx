@@ -169,6 +169,10 @@ export function SettingsScreen() {
             setChildren((cs) => cs.map((x) => (x.id === c.id ? c : x)));
             setEditing(null);
           }}
+          onDeleted={(childId) => {
+            setChildren((cs) => cs.filter((x) => x.id !== childId));
+            setEditing(null);
+          }}
         />
       )}
     </ScreenContainer>
