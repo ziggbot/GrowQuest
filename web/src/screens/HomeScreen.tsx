@@ -18,6 +18,7 @@ import { notify } from "../lib/notifications";
 import { computeMissionVisibility } from "../lib/missions";
 import { ProfilePickerScreen } from "./ProfilePickerScreen";
 import { CreateMissionSheet } from "./CreateMissionSheet";
+import { GuideSheet } from "./GuideSheet";
 import { ChildView } from "./ChildView";
 
 type Perspective = { kind: "parent" } | { kind: "child"; id: string };
@@ -41,6 +42,7 @@ export function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
   const [showCreateMission, setShowCreateMission] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   // Persist the parent/child perspective so navigating into wallet/leaderboard
   // and back doesn't reset us to "Förälder".
   const [perspective, setPerspective] = useState<Perspective>(() => {
@@ -281,6 +283,29 @@ export function HomeScreen() {
             </div>
           </div>
           <button
+            onClick={() => setShowGuide(true)}
+            aria-label="Föräldraguide"
+            title="Föräldraguide"
+            style={{
+              background: "transparent",
+              border: "none",
+              borderRadius: 999,
+              width: 40,
+              height: 40,
+              padding: 0,
+              color: C.gold,
+              cursor: "pointer",
+              fontSize: 24,
+              fontWeight: 800,
+              lineHeight: 1,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
+          >
+            ?
+          </button>
+          <button
             onClick={() => nav("/settings")}
             aria-label="Inställningar"
             title="Inställningar"
@@ -368,6 +393,8 @@ export function HomeScreen() {
         ) : activeChild ? (
           <ChildView child={activeChild} familyId={familyId} onOpenWallet={() => nav(`/wallet/${activeChild.id}`)} />
         ) : null}
+
+        {showGuide && <GuideSheet onClose={() => setShowGuide(false)} />}
 
         {showCreateMission && profileEntry && (
           <CreateMissionSheet
