@@ -147,18 +147,20 @@ redeem=$(auth -X POST "$SUPABASE_URL/rest/v1/rpc/redeem_screen_time" \
   -H "Content-Type: application/json" \
   -d "{\"p_child_id\":\"$cid\",\"p_minutes\":15}")
 cost=$(jq -r '.mynt_cost // empty' <<<"$redeem")
-[ "$cost" = "40" ] || { red "  expected mynt_cost=40, got '$cost' (response: $redeem)"; exit 1; }
+# Economy is 1 mynt = 1 minute × screen_time_multiplier (here 1.0).
+[ "$cost" = "15" ] || { red "  expected mynt_cost=15, got '$cost' (response: $redeem)"; exit 1; }
 green "  redeemed 15 min for $cost 🪙"
 
 bal_after=$(auth "$SUPABASE_URL/rest/v1/child_balances?child_id=eq.$cid&select=balance" \
   | jq -r '.[0].balance // empty')
-[ "$bal_after" = "10" ] || { red "  expected balance=10 after redemption, got '$bal_after'"; exit 1; }
-green "  post-redemption balance: 10 🪙"
+[ "$bal_after" = "35" ] || { red "  expected balance=35 after redemption, got '$bal_after'"; exit 1; }
+green "  post-redemption balance: 35 🪙"
 
 step "redemption  insufficient mynt must fail"
+# Balance is 35; ask for 60 min → cost 60 mynt → insufficient.
 re2=$(auth -X POST "$SUPABASE_URL/rest/v1/rpc/redeem_screen_time" \
   -H "Content-Type: application/json" \
-  -d "{\"p_child_id\":\"$cid\",\"p_minutes\":15}")
+  -d "{\"p_child_id\":\"$cid\",\"p_minutes\":60}")
 if jq -e '.code // empty' <<<"$re2" >/dev/null 2>&1; then
   green "  insufficient-mynt correctly rejected ($(jq -r '.message // .code' <<<"$re2"))"
 else
