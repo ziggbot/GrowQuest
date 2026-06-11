@@ -18,6 +18,8 @@ export interface ProfileConfig {
   uppdrag_multiplier: number;
   screen_time_multiplier: number;
   daily_limit_minutes: number;
+  require_daily_mission: boolean;
+  mynt_expiry_days: number | null;
 }
 
 export type AgeBand = "4-6" | "7-9" | "10-12" | "13+";

@@ -105,6 +105,9 @@ export function SettingsScreen() {
           </div>
         </Kort>
 
+        {/* Economy rules */}
+        {familyId && <EconomyCard familyId={familyId} />}
+
         {/* Wallet adjustment */}
         {children.length > 0 && <WalletAdjustCard children={children} />}
 
@@ -219,6 +222,187 @@ function ChildRow({ child, onEdit }: { child: ChildProfile; onEdit: () => void }
         Hantera
       </button>
     </div>
+  );
+}
+
+function EconomyCard({ familyId }: { familyId: string }) {
+  const [config, setConfig] = useState<ProfileConfig | null>(null);
+  const [savingMsg, setSavingMsg] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    void (async () => {
+      const { data } = await supabase
+        .from("profile_configs")
+        .select("*")
+        .eq("family_id", familyId)
+        .maybeSingle();
+      setConfig((data as ProfileConfig | null) ?? null);
+    })();
+  }, [familyId]);
+
+  async function patch(fields: Partial<ProfileConfig>) {
+    if (!config) return;
+    const prev = config;
+    setConfig({ ...config, ...fields });
+    const { error } = await supabase
+      .from("profile_configs")
+      .update(fields)
+      .eq("family_id", familyId);
+    if (error) {
+      setConfig(prev);
+      setErr(error.message);
+    } else {
+      setSavingMsg("Sparat ✓");
+      window.setTimeout(() => setSavingMsg(null), 1200);
+    }
+  }
+
+  if (!config) {
+    return (
+      <Kort>
+        <h3 style={{ margin: "0 0 8px", color: C.text }}>Ekonomi</h3>
+        <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>Laddar…</p>
+      </Kort>
+    );
+  }
+
+  const expiryOn = config.mynt_expiry_days != null;
+  const limit = config.daily_limit_minutes;
+
+  return (
+    <Kort>
+      <h3 style={{ margin: "0 0 4px", color: C.text }}>Ekonomi</h3>
+      <p style={{ color: C.muted, fontSize: 12, margin: "0 0 12px" }}>
+        Hur barnens mynt fungerar. 1 mynt = 1 minut skärmtid.
+      </p>
+
+      {/* Daily cap */}
+      <div style={{ marginBottom: 14 }}>
+        <label style={{ color: C.muted, fontSize: 12, fontWeight: 700, display: "block", marginBottom: 4 }}>
+          Max skärmtid per dag
+        </label>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            onClick={() => void patch({ daily_limit_minutes: Math.max(0, limit - 15) })}
+            style={stepBtn}
+          >
+            −15
+          </button>
+          <div style={{ flex: 1, textAlign: "center", color: C.purple, fontWeight: 800, fontSize: 20 }}>
+            {limit} min
+          </div>
+          <button
+            onClick={() => void patch({ daily_limit_minutes: Math.min(600, limit + 15) })}
+            style={stepBtn}
+          >
+            +15
+          </button>
+        </div>
+        <div style={{ color: C.muted, fontSize: 11, marginTop: 4, textAlign: "center" }}>
+          Familjens gemensamma tak. Per-barn-override finns i Hantera.
+        </div>
+      </div>
+
+      {/* Require daily mission */}
+      <div
+        role="button"
+        onClick={() => void patch({ require_daily_mission: !config.require_daily_mission })}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "10px 12px",
+          background: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: 10,
+          cursor: "pointer",
+          marginBottom: 10
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={config.require_daily_mission}
+          readOnly
+          style={{ width: 18, height: 18, accentColor: C.gold, margin: 0 }}
+        />
+        <div style={{ flex: 1 }}>
+          <div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>
+            Kräver minst ett uppdrag idag
+          </div>
+          <div style={{ color: C.muted, fontSize: 11 }}>
+            Barnet måste ha klarat ett uppdrag i dag innan det kan växla mynt till skärmtid.
+          </div>
+        </div>
+      </div>
+
+      {/* Mynt expiry */}
+      <div
+        role="button"
+        onClick={() => void patch({ mynt_expiry_days: expiryOn ? null : 14 })}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          padding: "10px 12px",
+          background: C.surface,
+          border: `1px solid ${C.border}`,
+          borderRadius: 10,
+          cursor: "pointer"
+        }}
+      >
+        <input
+          type="checkbox"
+          checked={expiryOn}
+          readOnly
+          style={{ width: 18, height: 18, accentColor: C.gold, margin: 0 }}
+        />
+        <div style={{ flex: 1 }}>
+          <div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>Mynt går ut</div>
+          <div style={{ color: C.muted, fontSize: 11 }}>
+            Oanvända mynt försvinner efter ett antal dagar — gör att aktivitet idag räknas mest.
+          </div>
+        </div>
+      </div>
+      {expiryOn && (
+        <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            onClick={() =>
+              void patch({
+                mynt_expiry_days: Math.max(1, (config.mynt_expiry_days ?? 14) - 7)
+              })
+            }
+            style={stepBtn}
+          >
+            −7
+          </button>
+          <div
+            style={{
+              flex: 1,
+              textAlign: "center",
+              color: C.gold,
+              fontWeight: 800,
+              fontSize: 18
+            }}
+          >
+            {config.mynt_expiry_days} dagar
+          </div>
+          <button
+            onClick={() =>
+              void patch({
+                mynt_expiry_days: Math.min(365, (config.mynt_expiry_days ?? 14) + 7)
+              })
+            }
+            style={stepBtn}
+          >
+            +7
+          </button>
+        </div>
+      )}
+
+      {savingMsg && <p style={{ color: C.green, fontSize: 12, margin: "10px 0 0" }}>{savingMsg}</p>}
+      {err && <p style={{ color: C.red, fontSize: 13, margin: "10px 0 0" }}>{err}</p>}
+    </Kort>
   );
 }
 
