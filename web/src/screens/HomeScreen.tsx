@@ -38,6 +38,7 @@ export function HomeScreen() {
   >([]);
   const [pendingCount, setPendingCount] = useState(0);
   const [pendingRedemptionsCount, setPendingRedemptionsCount] = useState(0);
+  const [pendingGoalsCount, setPendingGoalsCount] = useState(0);
   const [todaySubs, setTodaySubs] = useState<TodaySubMap>({});
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
@@ -83,7 +84,7 @@ export function HomeScreen() {
       // older than that are already hidden by the created_at < today rule.
       const lookback = new Date(startOfToday);
       lookback.setDate(lookback.getDate() - 30);
-      const [pcRes, kidsRes, mRes, pRes, subsRes, rRes] = await Promise.all([
+      const [pcRes, kidsRes, mRes, pRes, subsRes, rRes, gRes] = await Promise.all([
         supabase.from("profile_configs").select("*").eq("family_id", familyId).maybeSingle(),
         supabase.from("child_profiles").select("*").eq("family_id", familyId).order("created_at"),
         supabase.from("missions").select("*").eq("family_id", familyId).eq("active", true),
@@ -93,7 +94,10 @@ export function HomeScreen() {
           .select("mission_id, child_id, status, submitted_at, reviewed_at")
           .eq("family_id", familyId)
           .gte("submitted_at", lookback.toISOString()),
-        supabase.from("redemptions").select("id").eq("family_id", familyId).eq("status", "pending")
+        supabase.from("redemptions").select("id").eq("family_id", familyId).eq("status", "pending"),
+        // Pending savings goal proposals waiting for parent approval.
+        // Soft-tolerate older clouds without the status column.
+        supabase.from("savings_goals").select("id, status").eq("family_id", familyId)
       ]);
       if (pcRes.error && pcRes.error.code !== "PGRST116") throw pcRes.error;
       if (kidsRes.error) throw kidsRes.error;
@@ -102,6 +106,10 @@ export function HomeScreen() {
       if (subsRes.error) throw subsRes.error;
       // Soft-tolerate redemptions status not being on cloud yet.
       const redemptionsRows = rRes.error ? [] : rRes.data ?? [];
+      // Soft-tolerate savings_goals.status not being on cloud yet.
+      const pendingGoals = gRes.error
+        ? 0
+        : ((gRes.data ?? []) as { status?: string }[]).filter((g) => g.status === "pending").length;
 
       const allSubs = (subsRes.data ?? []) as Pick<
         MissionSubmission,
@@ -129,6 +137,7 @@ export function HomeScreen() {
       setSubmissions(allSubs);
       setPendingCount(pRes.data?.length ?? 0);
       setPendingRedemptionsCount(redemptionsRows.length);
+      setPendingGoalsCount(pendingGoals);
       setTodaySubs(subMap);
     } catch (e) {
       setErr((e as Error).message);
@@ -213,9 +222,37 @@ export function HomeScreen() {
       )
       .subscribe();
 
+    const goalChannel = supabase
+      .channel(`goals-${familyId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "savings_goals",
+          filter: `family_id=eq.${familyId}`
+        },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const g = payload.new as { child_id: string; title: string; status?: string };
+            if (g.status === "pending") {
+              const who = childName(g.child_id);
+              notify(`💡 ${who} föreslog ett sparmål`, {
+                body: `"${g.title}" väntar på ditt OK.`,
+                tag: `goal:${g.child_id}`,
+                url: "/inbox"
+              });
+            }
+          }
+          void reload();
+        }
+      )
+      .subscribe();
+
     return () => {
       void supabase.removeChannel(redChannel);
       void supabase.removeChannel(subChannel);
+      void supabase.removeChannel(goalChannel);
     };
   }, [familyId]);
 
@@ -382,6 +419,7 @@ export function HomeScreen() {
             submissions={submissions}
             pendingCount={pendingCount}
             pendingRedemptionsCount={pendingRedemptionsCount}
+            pendingGoalsCount={pendingGoalsCount}
             todaySubs={todaySubs}
             onAddChild={() => nav("/settings")}
             onCreateMission={() => setShowCreateMission(true)}
@@ -457,6 +495,7 @@ function ParentDashboard({
   submissions,
   pendingCount,
   pendingRedemptionsCount,
+  pendingGoalsCount,
   todaySubs,
   onAddChild,
   onCreateMission,
@@ -472,6 +511,7 @@ function ParentDashboard({
   >;
   pendingCount: number;
   pendingRedemptionsCount: number;
+  pendingGoalsCount: number;
   todaySubs: TodaySubMap;
   onAddChild: () => void;
   onCreateMission: () => void;
@@ -494,7 +534,7 @@ function ParentDashboard({
     );
   }
 
-  const inboxTotal = pendingCount + pendingRedemptionsCount;
+  const inboxTotal = pendingCount + pendingRedemptionsCount + pendingGoalsCount;
 
   return (
     <div style={{ display: "grid", gap: 14 }}>
@@ -521,7 +561,9 @@ function ParentDashboard({
           <span>
             {inboxTotal === 0
               ? "🎉 Inget väntar"
-              : `${pendingCount} uppdrag · ${pendingRedemptionsCount} begäran`}
+              : `${pendingCount} uppdrag · ${pendingRedemptionsCount} begäran${
+                  pendingGoalsCount > 0 ? ` · ${pendingGoalsCount} sparmål` : ""
+                }`}
           </span>
           <span style={{ color: C.muted }}>›</span>
         </button>

@@ -6,7 +6,8 @@ import type {
   ChildProfile,
   Mission,
   MissionSubmission,
-  Redemption
+  Redemption,
+  SavingsGoal
 } from "../lib/types";
 import { labelForApp } from "../lib/apps";
 import { C } from "../design/tokens";
@@ -29,6 +30,12 @@ type Item =
       id: string;
       redemption: Redemption;
       child: ChildProfile;
+    }
+  | {
+      kind: "goal";
+      id: string;
+      goal: SavingsGoal;
+      child: ChildProfile;
     };
 
 export function InboxScreen() {
@@ -45,7 +52,7 @@ export function InboxScreen() {
     setLoading(true);
     setErr(null);
     try {
-      const [subsRes, redsRes, mRes, cRes] = await Promise.all([
+      const [subsRes, redsRes, gRes, mRes, cRes] = await Promise.all([
         supabase
           .from("mission_submissions")
           .select("*")
@@ -58,6 +65,12 @@ export function InboxScreen() {
           .eq("family_id", familyId)
           .eq("status", "pending")
           .order("started_at"),
+        supabase
+          .from("savings_goals")
+          .select("*")
+          .eq("family_id", familyId)
+          .eq("status", "pending")
+          .order("created_at"),
         supabase.from("missions").select("*").eq("family_id", familyId),
         supabase
           .from("child_profiles")
@@ -70,6 +83,8 @@ export function InboxScreen() {
       if (redsRes.error) throw redsRes.error;
       if (mRes.error) throw mRes.error;
       if (cRes.error) throw cRes.error;
+      // Soft-tolerate savings_goals.status not being on cloud yet.
+      const goalRows = gRes.error ? [] : ((gRes.data ?? []) as SavingsGoal[]);
 
       const missions = new Map((mRes.data as Mission[]).map((m) => [m.id, m]));
       const children = new Map((cRes.data as ChildProfile[]).map((c) => [c.id, c]));
@@ -96,6 +111,17 @@ export function InboxScreen() {
             kind: "redemption",
             id: `redemption:${r.id}`,
             redemption: r,
+            child: c
+          });
+        }
+      }
+      for (const g of goalRows) {
+        const c = children.get(g.child_id);
+        if (c) {
+          next.push({
+            kind: "goal",
+            id: `goal:${g.id}`,
+            goal: g,
             child: c
           });
         }
@@ -132,6 +158,14 @@ export function InboxScreen() {
           { event: "*", schema: "public", table: "redemptions", filter: `family_id=eq.${familyId}` },
           () => void reload()
         )
+        .subscribe(),
+      supabase
+        .channel(`inbox-goals-${familyId}`)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "savings_goals", filter: `family_id=eq.${familyId}` },
+          () => void reload()
+        )
         .subscribe()
     ];
     return () => {
@@ -148,9 +182,15 @@ export function InboxScreen() {
         p_note: noteText.length > 0 ? noteText : null
       });
       if (error) throw error;
-    } else {
+    } else if (item.kind === "redemption") {
       const { error } = await supabase.rpc("review_redemption", {
         p_redemption_id: item.redemption.id,
+        p_action: action
+      });
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.rpc("review_savings_goal", {
+        p_goal_id: item.goal.id,
         p_action: action
       });
       if (error) throw error;
@@ -197,7 +237,12 @@ export function InboxScreen() {
   const groups = useMemo(() => {
     const byChild = new Map<string, { child: ChildProfile; items: Item[] }>();
     for (const it of items) {
-      const cid = it.kind === "mission" ? it.submission.child_id : it.redemption.child_id;
+      const cid =
+        it.kind === "mission"
+          ? it.submission.child_id
+          : it.kind === "redemption"
+          ? it.redemption.child_id
+          : it.goal.child_id;
       const existing = byChild.get(cid);
       if (existing) existing.items.push(it);
       else byChild.set(cid, { child: it.child, items: [it] });
@@ -250,8 +295,10 @@ export function InboxScreen() {
                       onNote={(v) => setNotes((n) => ({ ...n, [it.id]: v }))}
                       onAction={(a) => void reviewOne(it, a)}
                     />
-                  ) : (
+                  ) : it.kind === "redemption" ? (
                     <RedemptionItemBody item={it} onAction={(a) => void reviewOne(it, a)} />
+                  ) : (
+                    <GoalItemBody item={it} onAction={(a) => void reviewOne(it, a)} />
                   )}
                 </Kort>
               ))}
@@ -408,7 +455,37 @@ function RedemptionItemBody({
   );
 }
 
+function GoalItemBody({
+  item,
+  onAction
+}: {
+  item: Extract<Item, { kind: "goal" }>;
+  onAction: (a: "approve" | "reject") => void;
+}) {
+  const g = item.goal;
+  return (
+    <>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <span style={{ fontSize: 22 }}>{g.emoji}</span>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, color: C.muted, fontWeight: 700 }}>SPARMÅL-FÖRSLAG</div>
+          <div style={{ fontWeight: 700 }}>{g.title}</div>
+        </div>
+        <Pill text={`${g.target_mynt} 🪙`} tint={C.gold} />
+      </div>
+      <p style={{ color: C.muted, fontSize: 12, margin: "0 0 10px" }}>
+        {item.child.nickname} föreslår att få spara mot detta mål.
+      </p>
+      <div style={{ display: "flex", gap: 8 }}>
+        <Knapp title="Neka" style="secondary" onClick={() => onAction("reject")} />
+        <Knapp title="Godkänn" onClick={() => onAction("approve")} />
+      </div>
+    </>
+  );
+}
+
 function itemDate(it: Item): Date {
   if (it.kind === "mission") return new Date(it.submission.submitted_at);
-  return new Date(it.redemption.started_at);
+  if (it.kind === "redemption") return new Date(it.redemption.started_at);
+  return new Date(it.goal.created_at);
 }

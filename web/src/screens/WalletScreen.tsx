@@ -878,6 +878,7 @@ export function WalletScreen() {
           <CashRedeemSheet
             child={child}
             balance={balance}
+            goals={goals.filter((g) => g.status === "approved" && g.saved < g.target_mynt)}
             onClose={() => setShowCash(false)}
             onRedeemed={() => {
               setShowCash(false);
