@@ -12,6 +12,7 @@ import { MissionDetailScreen } from "./screens/MissionDetailScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { ResetPasswordScreen } from "./screens/ResetPasswordScreen";
 import { JoinScreen } from "./screens/JoinScreen";
+import { PrivacyScreen, TermsScreen } from "./screens/LegalScreen";
 import { C } from "./design/tokens";
 
 export function App() {
@@ -28,8 +29,10 @@ export function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Public — reachable without auth so kids can accept invites */}
+        {/* Public — reachable without auth */}
         <Route path="/join" element={<JoinScreen />} />
+        <Route path="/legal/privacy" element={<PrivacyScreen />} />
+        <Route path="/legal/terms" element={<TermsScreen />} />
 
         {recovery && user ? (
           <Route path="*" element={<ResetPasswordScreen />} />

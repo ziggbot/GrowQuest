@@ -238,6 +238,28 @@ export function AuthScreen() {
 
         {info && <p style={{ color: C.green, fontSize: 13, marginTop: 12, textAlign: "center" }}>{info}</p>}
         {err && <p style={{ color: C.red, fontSize: 13, marginTop: 12, textAlign: "center" }}>{err}</p>}
+
+        {mode === "signup" && (
+          <p style={{ color: C.muted, fontSize: 11, marginTop: 16, textAlign: "center", lineHeight: 1.5 }}>
+            Genom att skapa ett konto godkänner du våra{" "}
+            <a href="/legal/terms" style={{ color: C.gold }}>
+              användarvillkor
+            </a>{" "}
+            och{" "}
+            <a href="/legal/privacy" style={{ color: C.gold }}>
+              integritetspolicy
+            </a>
+            .
+          </p>
+        )}
+        <div style={{ display: "flex", gap: 14, justifyContent: "center", marginTop: 14 }}>
+          <a href="/legal/privacy" style={{ color: C.muted, fontSize: 11 }}>
+            Integritetspolicy
+          </a>
+          <a href="/legal/terms" style={{ color: C.muted, fontSize: 11 }}>
+            Användarvillkor
+          </a>
+        </div>
       </div>
     </ScreenContainer>
   );

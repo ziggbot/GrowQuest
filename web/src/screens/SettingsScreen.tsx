@@ -17,6 +17,7 @@ import {
   notificationsPermission
 } from "../lib/notifications";
 import { CoinRain } from "../design/lottie";
+import { APP_VERSION, BUILD_TIME } from "../lib/version";
 
 export function SettingsScreen() {
   const nav = useNavigate();
@@ -120,12 +121,26 @@ export function SettingsScreen() {
         {/* Password */}
         <PasswordCardEntry email={user?.email ?? null} />
 
+        {/* Feedback */}
+        <FeedbackCard email={user?.email ?? null} />
+
         {/* About */}
         <Kort>
           <h3 style={{ margin: "0 0 8px", color: C.text }}>Om</h3>
           <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>
             GrowQuest · {user?.email}
           </p>
+          <p style={{ color: C.muted, fontSize: 11, margin: "6px 0 10px" }}>
+            Version {APP_VERSION} · bygge {BUILD_TIME}
+          </p>
+          <div style={{ display: "flex", gap: 14 }}>
+            <a href="/legal/privacy" style={{ color: C.gold, fontSize: 12 }}>
+              Integritetspolicy
+            </a>
+            <a href="/legal/terms" style={{ color: C.gold, fontSize: 12 }}>
+              Användarvillkor
+            </a>
+          </div>
         </Kort>
 
         {/* Sign out — last in the list */}
@@ -780,6 +795,48 @@ function SoundsCard() {
         <Knapp title="🧪 Testa myntregn" onClick={() => setTestRain(true)} style="secondary" />
       </div>
       {testRain && <CoinRain onDone={() => setTestRain(false)} />}
+    </Kort>
+  );
+}
+
+function FeedbackCard({ email }: { email: string | null }) {
+  // Pre-filled mailto so beta testers can report without friction. The
+  // version + build land in the body so we know what they were running.
+  const subject = encodeURIComponent("GrowQuest feedback");
+  const body = encodeURIComponent(
+    `\n\n---\nBerätta vad du gjorde, vad du förväntade dig och vad som hände.\n` +
+      `Skicka gärna en skärmbild.\n\n` +
+      `(Teknisk info — radera inte)\n` +
+      `Version: ${APP_VERSION}\n` +
+      `Bygge: ${BUILD_TIME}\n` +
+      `Konto: ${email ?? "okänt"}\n` +
+      `Enhet: ${typeof navigator !== "undefined" ? navigator.userAgent : "okänd"}`
+  );
+  const href = `mailto:peter.gbg.andersson@gmail.com?subject=${subject}&body=${body}`;
+
+  return (
+    <Kort>
+      <h3 style={{ margin: "0 0 4px", color: C.text }}>Tyck till</h3>
+      <p style={{ color: C.muted, fontSize: 12, margin: "0 0 12px" }}>
+        Hittat en bugg eller har en idé? Vi läser allt — det hjälper oss göra appen bättre.
+      </p>
+      <a href={href} style={{ textDecoration: "none" }}>
+        <div
+          style={{
+            width: "100%",
+            boxSizing: "border-box",
+            textAlign: "center",
+            background: C.gold,
+            borderRadius: 12,
+            padding: "12px 16px",
+            color: "#fff",
+            fontWeight: 700,
+            fontSize: 14
+          }}
+        >
+          ✉️ Skicka feedback
+        </div>
+      </a>
     </Kort>
   );
 }
