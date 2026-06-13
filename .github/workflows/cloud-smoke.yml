@@ -94,4 +94,8 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          # Optional. Set this secret to keep the smoke test green once
+          # email confirmation is enabled on the project — the script
+          # uses it to create a pre-confirmed user via the admin API.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: ./scripts/smoke-cloud.sh

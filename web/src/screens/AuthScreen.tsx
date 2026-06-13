@@ -37,9 +37,17 @@ export function AuthScreen() {
     setWorking(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/` }
+        });
         if (error) throw error;
-        setInfo("Klart! Om e-postbekräftelse är på, kolla din inkorg.");
+        if (!data.session) {
+          setInfo(
+            `Konto skapat! Vi har skickat en bekräftelse till ${email}. Klicka på länken i mejlet för att logga in.`
+          );
+        }
       } else if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
@@ -78,7 +86,9 @@ export function AuthScreen() {
       }
     } catch (e) {
       const msg = (e as Error).message;
-      if (/invalid login/i.test(msg)) setErr("Fel e-post eller lösenord.");
+      if (/email not confirmed/i.test(msg))
+        setErr("Bekräfta din e-post först — klicka på länken i mejlet vi skickade.");
+      else if (/invalid login/i.test(msg)) setErr("Fel e-post eller lösenord.");
       else if (/already registered/i.test(msg)) setErr("E-postadressen är redan registrerad.");
       else setErr(msg);
     } finally {

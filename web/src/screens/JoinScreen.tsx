@@ -31,6 +31,9 @@ export function JoinScreen() {
   const [working, setWorking] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  // Set when email confirmation is on and we've sent the verification
+  // mail but the account isn't usable yet.
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -47,6 +50,26 @@ export function JoinScreen() {
     })();
   }, [token]);
 
+  // If the child arrives here already signed in (e.g. they clicked the
+  // email-confirmation link, which lands them back on /join authed),
+  // finish claiming the profile automatically.
+  useEffect(() => {
+    if (!token || peek?.valid !== true) return;
+    void (async () => {
+      const { data: sess } = await supabase.auth.getSession();
+      const sessionEmail = sess.session?.user.email?.toLowerCase();
+      if (sessionEmail && sessionEmail === peek.email.toLowerCase()) {
+        const { error: acceptErr } = await supabase.rpc("accept_child_invite", {
+          p_token: token
+        });
+        if (!acceptErr) {
+          setDone(true);
+          window.setTimeout(() => nav("/"), 800);
+        }
+      }
+    })();
+  }, [token, peek, nav]);
+
   const mismatch = pw.length > 0 && confirm.length > 0 && pw !== confirm;
   const canSubmit =
     !working && peek?.valid === true && pw.length >= 8 && pw === confirm;
@@ -56,11 +79,13 @@ export function JoinScreen() {
     setWorking(true);
     setErr(null);
     try {
-      // 1. Sign up with the invite's email. If the user already exists
-      //    (e.g. retrying after a hiccup) sign them in instead.
-      const { error: signupErr } = await supabase.auth.signUp({
+      // 1. Sign up with the invite's email. Send any confirmation link
+      //    back to this same /join URL so the child returns here authed
+      //    and the second effect above completes the claim.
+      const { data: signupData, error: signupErr } = await supabase.auth.signUp({
         email: peek.email,
-        password: pw
+        password: pw,
+        options: { emailRedirectTo: `${window.location.origin}/join?token=${token}` }
       });
       if (signupErr && /already.*register/i.test(signupErr.message)) {
         const { error: signinErr } = await supabase.auth.signInWithPassword({
@@ -72,7 +97,16 @@ export function JoinScreen() {
         throw signupErr;
       }
 
-      // 2. Claim the child profile.
+      // 2. If email confirmation is on, signUp returns no session — the
+      //    child must verify their email first. Show the waiting state;
+      //    the claim happens when they come back via the email link.
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess.session && !signupData.session) {
+        setAwaitingConfirm(true);
+        return;
+      }
+
+      // 3. We have a session — claim the child profile now.
       const { error: acceptErr } = await supabase.rpc("accept_child_invite", {
         p_token: token
       });
@@ -119,6 +153,15 @@ export function JoinScreen() {
               <div style={{ fontSize: 40, marginBottom: 6 }}>🎉</div>
               <h2 style={{ margin: "0 0 6px", color: C.text }}>Välkommen, {peek.nickname}!</h2>
               <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>Tar dig till appen…</p>
+            </div>
+          ) : awaitingConfirm ? (
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: 40, marginBottom: 6 }}>📧</div>
+              <h2 style={{ margin: "0 0 6px", color: C.text }}>Bekräfta din e-post</h2>
+              <p style={{ color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.5 }}>
+                Vi har skickat ett mejl till <strong style={{ color: C.text }}>{peek.email}</strong>.
+                Öppna det och klicka på länken — då loggas du in och kommer in i appen.
+              </p>
             </div>
           ) : (
             <>

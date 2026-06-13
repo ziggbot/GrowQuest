@@ -45,28 +45,47 @@ email="smoke+$(date +%s)@growquest.app"
 password="smoke-test-password-12345"
 
 step "1/7  sign up new user $email"
-signup=$(curl -sS -X POST "$SUPABASE_URL/auth/v1/signup" \
-  -H "apikey: $SUPABASE_ANON_KEY" \
-  -H "Content-Type: application/json" \
-  -d "{\"email\":\"$email\",\"password\":\"$password\"}")
-
-jwt=$(jq -r '.access_token // empty' <<<"$signup")
-uid=$(jq -r '.user.id // .id // empty'   <<<"$signup")
-
-if [ -z "$jwt" ]; then
-  yel "  no access_token in signup; trying password sign-in (confirmations may be off in dashboard)"
+# When email confirmation is ON (recommended before launch), plain
+# /signup never yields a session. If a service-role key is provided we
+# create the user pre-confirmed via the admin API; otherwise we fall
+# back to the open signup + password sign-in path (works only when
+# confirmations are OFF).
+if [ -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]; then
+  yel "  service-role key present — creating a pre-confirmed user via admin API"
+  curl -sS -X POST "$SUPABASE_URL/auth/v1/admin/users" \
+    -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+    -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"$email\",\"password\":\"$password\",\"email_confirm\":true}" >/dev/null
   signin=$(curl -sS -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
     -H "apikey: $SUPABASE_ANON_KEY" \
     -H "Content-Type: application/json" \
     -d "{\"email\":\"$email\",\"password\":\"$password\"}")
   jwt=$(jq -r '.access_token // empty' <<<"$signin")
   uid=$(jq -r '.user.id // empty'      <<<"$signin")
+else
+  signup=$(curl -sS -X POST "$SUPABASE_URL/auth/v1/signup" \
+    -H "apikey: $SUPABASE_ANON_KEY" \
+    -H "Content-Type: application/json" \
+    -d "{\"email\":\"$email\",\"password\":\"$password\"}")
+  jwt=$(jq -r '.access_token // empty' <<<"$signup")
+  uid=$(jq -r '.user.id // .id // empty'   <<<"$signup")
+  if [ -z "$jwt" ]; then
+    yel "  no access_token in signup; trying password sign-in (confirmations may be off in dashboard)"
+    signin=$(curl -sS -X POST "$SUPABASE_URL/auth/v1/token?grant_type=password" \
+      -H "apikey: $SUPABASE_ANON_KEY" \
+      -H "Content-Type: application/json" \
+      -d "{\"email\":\"$email\",\"password\":\"$password\"}")
+    jwt=$(jq -r '.access_token // empty' <<<"$signin")
+    uid=$(jq -r '.user.id // empty'      <<<"$signin")
+  fi
 fi
 
 if [ -z "$jwt" ] || [ -z "$uid" ]; then
   red "  signup did not yield a session"
-  echo "  signup response:  $signup" >&2
-  echo "  hint: disable email confirmations on your test Supabase project, or use \`supabase start\` locally." >&2
+  echo "  hint: if email confirmation is ON, add the SUPABASE_SERVICE_ROLE_KEY secret so" >&2
+  echo "        the smoke test can create a pre-confirmed user; otherwise disable" >&2
+  echo "        confirmations on the test project or use \`supabase start\` locally." >&2
   exit 1
 fi
 green "  user $uid"
