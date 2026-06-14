@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { useSession } from "../lib/session";
 import type { ChildProfile, Redemption } from "../lib/types";
 import { labelForApp } from "../lib/apps";
+import { CHILD_PROFILE_COLS } from "../lib/columns";
 import { C } from "../design/tokens";
 import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
 import { Avatar } from "../design/Avatar";
@@ -34,12 +35,12 @@ export function ScreenTimeQueueScreen() {
           .eq("family_id", familyId)
           .eq("status", "pending")
           .order("started_at"),
-        supabase.from("child_profiles").select("*").eq("family_id", familyId)
+        supabase.from("child_profiles").select(CHILD_PROFILE_COLS).eq("family_id", familyId)
       ]);
       if (rRes.error) throw rRes.error;
       if (cRes.error) throw cRes.error;
 
-      const children = new Map((cRes.data as ChildProfile[]).map((c) => [c.id, c]));
+      const children = new Map((cRes.data as unknown as ChildProfile[]).map((c) => [c.id, c]));
       const list: QueueItem[] = [];
       for (const r of rRes.data as Redemption[]) {
         const child = children.get(r.child_id);

@@ -11,6 +11,7 @@ import type {
   SavingsGoal
 } from "../lib/types";
 import { currentStadium, nextStadium } from "../lib/karaktar";
+import { CHILD_PROFILE_COLS } from "../lib/columns";
 import { C, CK } from "../design/tokens";
 import {
   Kort,
@@ -60,7 +61,7 @@ export function WalletScreen() {
     setErr(null);
     try {
       const [chRes, balRes, ledRes, prRes, cfgRes, redRes] = await Promise.all([
-        supabase.from("child_profiles").select("*").eq("id", childId).single(),
+        supabase.from("child_profiles").select(CHILD_PROFILE_COLS).eq("id", childId).single(),
         supabase.from("child_balances").select("*").eq("child_id", childId).maybeSingle(),
         supabase
           .from("coin_ledger")
@@ -78,7 +79,7 @@ export function WalletScreen() {
           .order("started_at", { ascending: false })
       ]);
       if (chRes.error) throw chRes.error;
-      setChild(chRes.data as ChildProfile);
+      setChild(chRes.data as unknown as ChildProfile);
       setBalance(((balRes.data as any)?.balance ?? 0) | 0);
       setEntries((ledRes.data ?? []) as CoinLedgerEntry[]);
       setProgress((prRes.data as ChildProgress | null) ?? null);

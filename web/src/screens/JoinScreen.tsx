@@ -12,7 +12,6 @@ import { Kort, Knapp, Input, ScreenContainer } from "../design/components";
 
 interface InvitePeek {
   valid: true;
-  email: string;
   nickname: string;
   avatar_emoji: string;
 }
@@ -26,6 +25,7 @@ export function JoinScreen() {
   const nav = useNavigate();
   const token = params.get("token") ?? "";
   const [peek, setPeek] = useState<InvitePeek | InviteInvalid | null>(null);
+  const [email, setEmail] = useState("");
   const [pw, setPw] = useState("");
   const [confirm, setConfirm] = useState("");
   const [working, setWorking] = useState(false);
@@ -52,44 +52,49 @@ export function JoinScreen() {
 
   // If the child arrives here already signed in (e.g. they clicked the
   // email-confirmation link, which lands them back on /join authed),
-  // finish claiming the profile automatically.
+  // finish claiming the profile automatically. The RPC itself enforces
+  // that the auth user's email matches the invite, so we don't need to
+  // double-check on the client.
   useEffect(() => {
     if (!token || peek?.valid !== true) return;
     void (async () => {
       const { data: sess } = await supabase.auth.getSession();
-      const sessionEmail = sess.session?.user.email?.toLowerCase();
-      if (sessionEmail && sessionEmail === peek.email.toLowerCase()) {
-        const { error: acceptErr } = await supabase.rpc("accept_child_invite", {
-          p_token: token
-        });
-        if (!acceptErr) {
-          setDone(true);
-          window.setTimeout(() => nav("/"), 800);
-        }
+      if (!sess.session) return;
+      const { error: acceptErr } = await supabase.rpc("accept_child_invite", {
+        p_token: token
+      });
+      if (!acceptErr) {
+        setDone(true);
+        window.setTimeout(() => nav("/"), 800);
       }
     })();
   }, [token, peek, nav]);
 
   const mismatch = pw.length > 0 && confirm.length > 0 && pw !== confirm;
   const canSubmit =
-    !working && peek?.valid === true && pw.length >= 8 && pw === confirm;
+    !working &&
+    peek?.valid === true &&
+    email.includes("@") &&
+    pw.length >= 8 &&
+    pw === confirm;
 
   async function accept() {
     if (!canSubmit || peek?.valid !== true) return;
     setWorking(true);
     setErr(null);
     try {
-      // 1. Sign up with the invite's email. Send any confirmation link
-      //    back to this same /join URL so the child returns here authed
-      //    and the second effect above completes the claim.
+      // 1. Sign up with the email the child typed. Send any confirmation
+      //    link back to /join so they return here authed and the auto-
+      //    claim effect above finishes the job.
+      const typedEmail = email.trim().toLowerCase();
       const { data: signupData, error: signupErr } = await supabase.auth.signUp({
-        email: peek.email,
+        email: typedEmail,
         password: pw,
         options: { emailRedirectTo: `${window.location.origin}/join?token=${token}` }
       });
       if (signupErr && /already.*register/i.test(signupErr.message)) {
         const { error: signinErr } = await supabase.auth.signInWithPassword({
-          email: peek.email,
+          email: typedEmail,
           password: pw
         });
         if (signinErr) throw new Error("Kontot finns redan med ett annat lösenord.");
@@ -106,11 +111,20 @@ export function JoinScreen() {
         return;
       }
 
-      // 3. We have a session — claim the child profile now.
+      // 3. We have a session — claim the child profile now. The RPC
+      //    verifies the auth user's email matches the invite, so a
+      //    wrong-email typo surfaces as a clear error here.
       const { error: acceptErr } = await supabase.rpc("accept_child_invite", {
         p_token: token
       });
-      if (acceptErr) throw acceptErr;
+      if (acceptErr) {
+        if (/mismatch/i.test(acceptErr.message)) {
+          throw new Error(
+            "Den här inbjudan är för en annan e-postadress än den du skrev. Be föräldern dubbelkolla."
+          );
+        }
+        throw acceptErr;
+      }
 
       setDone(true);
       window.setTimeout(() => nav("/"), 800);
@@ -159,7 +173,7 @@ export function JoinScreen() {
               <div style={{ fontSize: 40, marginBottom: 6 }}>📧</div>
               <h2 style={{ margin: "0 0 6px", color: C.text }}>Bekräfta din e-post</h2>
               <p style={{ color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.5 }}>
-                Vi har skickat ett mejl till <strong style={{ color: C.text }}>{peek.email}</strong>.
+                Vi har skickat ett mejl till <strong style={{ color: C.text }}>{email}</strong>.
                 Öppna det och klicka på länken — då loggas du in och kommer in i appen.
               </p>
             </div>
@@ -169,11 +183,24 @@ export function JoinScreen() {
                 <div style={{ fontSize: 56, lineHeight: 1 }}>{peek.avatar_emoji}</div>
                 <h2 style={{ margin: "8px 0 4px", color: C.text }}>Hej {peek.nickname}!</h2>
                 <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>
-                  Du har blivit inbjuden till GrowQuest. Skapa ett lösenord för{" "}
-                  <strong style={{ color: C.text }}>{peek.email}</strong>.
+                  Du har blivit inbjuden till GrowQuest. Skriv den e-post du fick inbjudan på och
+                  välj ett lösenord.
                 </p>
               </div>
               <div style={{ display: "grid", gap: 10 }}>
+                <div>
+                  <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 4 }}>
+                    Din e-post
+                  </label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="din@email.se"
+                    autoComplete="email"
+                    autoFocus
+                  />
+                </div>
                 <div>
                   <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 4 }}>
                     Nytt lösenord
@@ -184,7 +211,6 @@ export function JoinScreen() {
                     onChange={(e) => setPw(e.target.value)}
                     placeholder="Minst 8 tecken"
                     autoComplete="new-password"
-                    autoFocus
                   />
                 </div>
                 <div>

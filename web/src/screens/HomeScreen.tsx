@@ -16,6 +16,7 @@ import { Avatar } from "../design/Avatar";
 import { playPop } from "../design/sounds";
 import { notify } from "../lib/notifications";
 import { computeMissionVisibility } from "../lib/missions";
+import { CHILD_PROFILE_COLS } from "../lib/columns";
 import { ProfilePickerScreen } from "./ProfilePickerScreen";
 import { CreateMissionSheet } from "./CreateMissionSheet";
 import { GuideSheet } from "./GuideSheet";
@@ -86,7 +87,11 @@ export function HomeScreen() {
       lookback.setDate(lookback.getDate() - 30);
       const [pcRes, kidsRes, mRes, pRes, subsRes, rRes, gRes] = await Promise.all([
         supabase.from("profile_configs").select("*").eq("family_id", familyId).maybeSingle(),
-        supabase.from("child_profiles").select("*").eq("family_id", familyId).order("created_at"),
+        supabase
+          .from("child_profiles")
+          .select(CHILD_PROFILE_COLS)
+          .eq("family_id", familyId)
+          .order("created_at"),
         supabase.from("missions").select("*").eq("family_id", familyId).eq("active", true),
         supabase.from("mission_submissions").select("id").eq("family_id", familyId).eq("status", "pending"),
         supabase
@@ -132,7 +137,7 @@ export function HomeScreen() {
       }
 
       setProfile(pcRes.data as ProfileConfig | null);
-      setChildren((kidsRes.data ?? []) as ChildProfile[]);
+      setChildren((kidsRes.data ?? []) as unknown as ChildProfile[]);
       setMissions((mRes.data ?? []) as Mission[]);
       setSubmissions(allSubs);
       setPendingCount(pRes.data?.length ?? 0);

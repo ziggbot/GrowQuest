@@ -18,6 +18,7 @@ import {
 } from "../lib/notifications";
 import { CoinRain } from "../design/lottie";
 import { APP_VERSION, BUILD_TIME } from "../lib/version";
+import { CHILD_PROFILE_COLS } from "../lib/columns";
 
 export function SettingsScreen() {
   const nav = useNavigate();
@@ -33,16 +34,12 @@ export function SettingsScreen() {
     setLoading(true);
     const { data, error } = await supabase
       .from("child_profiles")
-      .select("id, family_id, nickname, avatar_emoji, age_band, global_leaderboard_opt_in")
+      .select(CHILD_PROFILE_COLS)
       .eq("family_id", familyId)
       .order("created_at");
     setLoading(false);
-    console.log("[Settings] reload result:", {
-      error,
-      rows: data?.map((c) => ({ id: c.id, opt_in: c.global_leaderboard_opt_in }))
-    });
     if (error) setErr(error.message);
-    else setChildren((data ?? []) as ChildProfile[]);
+    else setChildren((data ?? []) as unknown as ChildProfile[]);
   }
 
   useEffect(() => {

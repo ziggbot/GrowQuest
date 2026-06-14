@@ -6,6 +6,7 @@ import type { MissionSubmission, Mission, ChildProfile } from "../lib/types";
 import { C } from "../design/tokens";
 import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
 import { Avatar } from "../design/Avatar";
+import { CHILD_PROFILE_COLS } from "../lib/columns";
 import { BackButton } from "../design/BackButton";
 import { playPop, playReject } from "../design/sounds";
 
@@ -37,14 +38,14 @@ export function ApprovalQueueScreen() {
           .eq("status", "pending")
           .order("submitted_at"),
         supabase.from("missions").select("*").eq("family_id", familyId),
-        supabase.from("child_profiles").select("*").eq("family_id", familyId)
+        supabase.from("child_profiles").select(CHILD_PROFILE_COLS).eq("family_id", familyId)
       ]);
       if (subsRes.error) throw subsRes.error;
       if (mRes.error) throw mRes.error;
       if (cRes.error) throw cRes.error;
 
       const missions = new Map((mRes.data as Mission[]).map((m) => [m.id, m]));
-      const children = new Map((cRes.data as ChildProfile[]).map((c) => [c.id, c]));
+      const children = new Map((cRes.data as unknown as ChildProfile[]).map((c) => [c.id, c]));
       const list: QueueItem[] = [];
       for (const s of subsRes.data as MissionSubmission[]) {
         const m = missions.get(s.mission_id);
