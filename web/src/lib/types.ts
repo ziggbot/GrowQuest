@@ -36,6 +36,8 @@ export interface ChildProfile {
   gender: Gender | null;
   global_leaderboard_opt_in: boolean;
   daily_limit_minutes_override: number | null;
+  require_daily_mission: boolean;
+  mynt_expiry_days: number | null;
   email: string | null;
   auth_user_id: string | null;
 }

@@ -486,7 +486,7 @@ export function WalletScreen() {
             <RedeemSheet
               child={child}
               multiplier={config.screen_time_multiplier}
-              dailyLimit={config.daily_limit_minutes}
+              dailyLimit={child.daily_limit_minutes_override ?? config.daily_limit_minutes}
               usedToday={usedToday}
               onClose={() => setShowRedeem(false)}
               onRedeemed={() => {
@@ -865,7 +865,7 @@ export function WalletScreen() {
           <RedeemSheet
             child={child}
             multiplier={config.screen_time_multiplier}
-            dailyLimit={config.daily_limit_minutes}
+            dailyLimit={child.daily_limit_minutes_override ?? config.daily_limit_minutes}
             usedToday={usedToday}
             onClose={() => setShowRedeem(false)}
             onRedeemed={() => {

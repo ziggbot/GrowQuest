@@ -16,4 +16,5 @@
 // there to make the schema flow obvious.
 export const CHILD_PROFILE_COLS =
   "id, family_id, nickname, avatar_emoji, avatar_photo, age_band, gender, " +
-  "global_leaderboard_opt_in, daily_limit_minutes_override, email, auth_user_id";
+  "global_leaderboard_opt_in, daily_limit_minutes_override, require_daily_mission, " +
+  "mynt_expiry_days, email, auth_user_id";

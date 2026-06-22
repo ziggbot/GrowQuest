@@ -20,6 +20,25 @@ const limitStepBtn: React.CSSProperties = {
   minWidth: 56
 };
 
+const toggleRow: React.CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  padding: "10px 12px",
+  background: C.surface,
+  border: `1px solid ${C.border}`,
+  borderRadius: 10,
+  cursor: "pointer",
+  marginTop: 10
+};
+
+const checkboxStyle: React.CSSProperties = {
+  width: 18,
+  height: 18,
+  accentColor: C.gold,
+  margin: 0
+};
+
 export function AddChildSheet({
   familyId,
   editing,
@@ -40,8 +59,14 @@ export function AddChildSheet({
   const [photoData, setPhotoData] = useState<string | null>(editing?.avatar_photo ?? null);
   const [photoBusy, setPhotoBusy] = useState(false);
   const [optIn, setOptIn] = useState<boolean>(editing?.global_leaderboard_opt_in ?? false);
-  const [limitOverride, setLimitOverride] = useState<number | null>(
-    editing?.daily_limit_minutes_override ?? null
+  const [screenLimit, setScreenLimit] = useState<number>(
+    editing?.daily_limit_minutes_override ?? 60
+  );
+  const [requireDailyMission, setRequireDailyMission] = useState<boolean>(
+    editing?.require_daily_mission ?? false
+  );
+  const [myntExpiryDays, setMyntExpiryDays] = useState<number | null>(
+    editing?.mynt_expiry_days ?? null
   );
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteLink, setInviteLink] = useState<string | null>(null);
@@ -68,7 +93,9 @@ export function AddChildSheet({
         age_band: ageBand,
         gender,
         global_leaderboard_opt_in: optIn,
-        daily_limit_minutes_override: limitOverride
+        daily_limit_minutes_override: screenLimit,
+        require_daily_mission: requireDailyMission,
+        mynt_expiry_days: myntExpiryDays
       };
       const { data, error } = isEditing
         ? await supabase
@@ -331,62 +358,89 @@ export function AddChildSheet({
         </Kort>
 
         <Kort>
-          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>
-            Daglig skärmtidsgräns
-          </label>
-          <p style={{ color: C.muted, fontSize: 11, margin: "0 0 10px" }}>
-            Lämna tomt för att använda familjens gemensamma gräns.
+          <h3 style={{ margin: "0 0 4px", color: C.text, fontSize: 15 }}>Skärmtid &amp; ekonomi</h3>
+          <p style={{ color: C.muted, fontSize: 11, margin: "0 0 12px" }}>
+            Reglerna gäller bara {nickname.trim() || "det här barnet"}. 1 mynt = 1 minut skärmtid.
           </p>
+
+          {/* Per-child daily screen-time cap */}
+          <label style={{ color: C.muted, fontSize: 12, fontWeight: 700, display: "block", marginBottom: 6 }}>
+            Max skärmtid per dag
+          </label>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
-              onClick={() =>
-                setLimitOverride((v) => {
-                  const next = (v ?? 60) - 15;
-                  return Math.max(0, next);
-                })
-              }
-              disabled={limitOverride === null}
+              onClick={() => setScreenLimit((v) => Math.max(0, v - 15))}
               style={limitStepBtn}
             >
               −15
             </button>
-            <div
-              style={{
-                flex: 1,
-                textAlign: "center",
-                color: limitOverride === null ? C.muted : C.purple,
-                fontWeight: 800,
-                fontSize: 18
-              }}
-            >
-              {limitOverride === null ? "Familjens gräns" : `${limitOverride} min`}
+            <div style={{ flex: 1, textAlign: "center", color: C.purple, fontWeight: 800, fontSize: 18 }}>
+              {screenLimit} min
             </div>
             <button
-              onClick={() =>
-                setLimitOverride((v) => Math.min(600, (v ?? 60) + 15))
-              }
+              onClick={() => setScreenLimit((v) => Math.min(600, v + 15))}
               style={limitStepBtn}
             >
               +15
             </button>
           </div>
-          <div style={{ marginTop: 8, textAlign: "right" }}>
-            <button
-              onClick={() => setLimitOverride(limitOverride === null ? 60 : null)}
-              style={{
-                background: "transparent",
-                border: "none",
-                color: C.gold,
-                cursor: "pointer",
-                fontSize: 12,
-                fontWeight: 700,
-                padding: 0
-              }}
-            >
-              {limitOverride === null ? "Ställ in egen gräns" : "Återgå till familjens gräns"}
-            </button>
+          <div style={{ color: C.muted, fontSize: 11, marginTop: 6, textAlign: "center" }}>
+            {(screenLimit / 60).toFixed(1)} timmar
           </div>
+
+          {/* Require a mission today */}
+          <div
+            role="button"
+            onClick={() => setRequireDailyMission((v) => !v)}
+            style={toggleRow}
+          >
+            <input type="checkbox" checked={requireDailyMission} readOnly style={checkboxStyle} />
+            <div style={{ flex: 1 }}>
+              <div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>
+                Kräver minst ett uppdrag idag
+              </div>
+              <div style={{ color: C.muted, fontSize: 11 }}>
+                Barnet måste ha klarat ett uppdrag idag innan det kan växla mynt till skärmtid.
+              </div>
+            </div>
+          </div>
+
+          {/* Mynt expiry */}
+          <div
+            role="button"
+            onClick={() => setMyntExpiryDays((v) => (v == null ? 14 : null))}
+            style={toggleRow}
+          >
+            <input type="checkbox" checked={myntExpiryDays != null} readOnly style={checkboxStyle} />
+            <div style={{ flex: 1 }}>
+              <div style={{ color: C.text, fontSize: 13, fontWeight: 700 }}>Mynt går ut</div>
+              <div style={{ color: C.muted, fontSize: 11 }}>
+                Oanvända mynt försvinner efter ett antal dagar — gör att aktivitet idag räknas mest.
+              </div>
+            </div>
+          </div>
+          {myntExpiryDays != null && (
+            <div style={{ marginTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                onClick={() => setMyntExpiryDays((v) => Math.max(1, (v ?? 14) - 7))}
+                style={limitStepBtn}
+              >
+                −7
+              </button>
+              <div style={{ flex: 1, textAlign: "center", color: C.gold, fontWeight: 800, fontSize: 18 }}>
+                {myntExpiryDays} dagar
+              </div>
+              <button
+                onClick={() => setMyntExpiryDays((v) => Math.min(365, (v ?? 14) + 7))}
+                style={limitStepBtn}
+              >
+                +7
+              </button>
+            </div>
+          )}
         </Kort>
+
+        {isEditing && <WalletAdjustCard childId={editing!.id} nickname={nickname} />}
 
         <Kort>
           <div
@@ -592,5 +646,132 @@ export function AddChildSheet({
         )}
       </div>
     </Sheet>
+  );
+}
+
+// Manual coin correction for a single child — bonus, fixup, etc. Lives
+// inside the per-child manage sheet so it's scoped to one wallet (no
+// child picker). adjust_balance writes an append-only coin_ledger row.
+function WalletAdjustCard({ childId, nickname }: { childId: string; nickname: string }) {
+  const [amount, setAmount] = useState(10);
+  const [direction, setDirection] = useState<"add" | "sub">("add");
+  const [working, setWorking] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function apply() {
+    if (amount < 1 || working) return;
+    setWorking(true);
+    setErr(null);
+    setMsg(null);
+    const signed = direction === "add" ? amount : -amount;
+    const { error } = await supabase.rpc("adjust_balance", {
+      p_child_id: childId,
+      p_amount: signed
+    });
+    setWorking(false);
+    if (error) {
+      setErr(error.message);
+    } else {
+      const who = nickname.trim() || "barnet";
+      setMsg(
+        direction === "add"
+          ? `+${amount} 🪙 tillagda till ${who}.`
+          : `−${amount} 🪙 dragna från ${who}.`
+      );
+    }
+  }
+
+  return (
+    <Kort>
+      <h3 style={{ margin: "0 0 4px", color: C.text, fontSize: 15 }}>Korrigera plånbok</h3>
+      <p style={{ color: C.muted, fontSize: 12, margin: "0 0 10px" }}>
+        Lägg till eller dra bort mynt manuellt — t.ex. för bonus eller rättning.
+      </p>
+      <div style={{ display: "grid", gap: 10 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            onClick={() => setDirection("add")}
+            style={{
+              flex: 1,
+              padding: "10px 8px",
+              background: direction === "add" ? `${C.green}22` : C.surfaceHov,
+              border: `${direction === "add" ? 2 : 1}px solid ${
+                direction === "add" ? C.green : C.border
+              }`,
+              borderRadius: 10,
+              color: direction === "add" ? C.green : C.text,
+              fontWeight: 700,
+              cursor: "pointer"
+            }}
+          >
+            + Lägg till
+          </button>
+          <button
+            onClick={() => setDirection("sub")}
+            style={{
+              flex: 1,
+              padding: "10px 8px",
+              background: direction === "sub" ? `${C.red}22` : C.surfaceHov,
+              border: `${direction === "sub" ? 2 : 1}px solid ${
+                direction === "sub" ? C.red : C.border
+              }`,
+              borderRadius: 10,
+              color: direction === "sub" ? C.red : C.text,
+              fontWeight: 700,
+              cursor: "pointer"
+            }}
+          >
+            − Dra bort
+          </button>
+        </div>
+        <div>
+          <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 4 }}>
+            Antal mynt
+          </label>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <button onClick={() => setAmount((a) => Math.max(1, a - 5))} style={limitStepBtn}>
+              −5
+            </button>
+            <input
+              type="number"
+              min={1}
+              value={amount}
+              onChange={(e) => setAmount(Math.max(1, parseInt(e.target.value) || 1))}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                width: "100%",
+                padding: "8px 10px",
+                background: C.surface,
+                border: `1px solid ${C.border}`,
+                borderRadius: 10,
+                color: C.gold,
+                fontSize: 18,
+                fontWeight: 700,
+                textAlign: "center",
+                fontFamily: "inherit"
+              }}
+            />
+            <button onClick={() => setAmount((a) => a + 5)} style={limitStepBtn}>
+              +5
+            </button>
+          </div>
+        </div>
+        <Knapp
+          title={
+            working
+              ? "Sparar…"
+              : direction === "add"
+              ? `Lägg till ${amount} 🪙`
+              : `Dra bort ${amount} 🪙`
+          }
+          onClick={apply}
+          disabled={working}
+        />
+        {msg && <p style={{ color: C.green, fontSize: 13, margin: 0 }}>{msg}</p>}
+        {err && <p style={{ color: C.red, fontSize: 13, margin: 0 }}>{err}</p>}
+      </div>
+    </Kort>
   );
 }
