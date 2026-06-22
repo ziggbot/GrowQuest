@@ -169,7 +169,9 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
         />
       </div>
 
-      {/* Wordmark */}
+      {/* Wordmark — paddingLeft matches letter-spacing to cancel the
+          trailing gap after the last letter, so the visual center
+          lines up with the page center. */}
       <h1
         style={{
           margin: 0,
@@ -177,12 +179,14 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
           fontSize: 64,
           fontWeight: 900,
           letterSpacing: "0.08em",
+          paddingLeft: "0.08em",
+          textAlign: "center",
           textShadow: "0 4px 24px rgba(0,0,0,0.35)",
           opacity: 0,
           animation: "rise-title 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.7s forwards"
         }}
       >
-        Rise
+        RISE
       </h1>
       <p
         style={{
@@ -190,6 +194,8 @@ export function SplashScreen({ onDone }: { onDone: () => void }) {
           fontSize: 16,
           fontWeight: 600,
           letterSpacing: "0.18em",
+          paddingLeft: "0.18em",
+          textAlign: "center",
           textTransform: "uppercase",
           color: "rgba(255,255,255,0.92)",
           opacity: 0,
