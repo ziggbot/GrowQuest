@@ -125,7 +125,7 @@ export function SettingsScreen() {
         <Kort>
           <h3 style={{ margin: "0 0 8px", color: C.text }}>Om</h3>
           <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>
-            GrowQuest · {user?.email}
+            Rise · {user?.email}
           </p>
           <p style={{ color: C.muted, fontSize: 11, margin: "6px 0 10px" }}>
             Version {APP_VERSION} · bygge {BUILD_TIME}
@@ -799,7 +799,7 @@ function SoundsCard() {
 function FeedbackCard({ email }: { email: string | null }) {
   // Pre-filled mailto so beta testers can report without friction. The
   // version + build land in the body so we know what they were running.
-  const subject = encodeURIComponent("GrowQuest feedback");
+  const subject = encodeURIComponent("Rise feedback");
   const body = encodeURIComponent(
     `\n\n---\nBerätta vad du gjorde, vad du förväntade dig och vad som hände.\n` +
       `Skicka gärna en skärmbild.\n\n` +

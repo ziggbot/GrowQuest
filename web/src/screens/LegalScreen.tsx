@@ -26,7 +26,7 @@ export function PrivacyScreen() {
 
             <H>Kort sammanfattning</H>
             <P>
-              GrowQuest är en familjeapp för uppdrag, mynt och skärmtid. Vi samlar bara in det
+              Rise är en familjeapp för uppdrag, mynt och skärmtid. Vi samlar bara in det
               som behövs för att appen ska fungera, säljer aldrig data, och visar aldrig
               annonser. En förälder styr all data om sina barn.
             </P>
@@ -99,7 +99,7 @@ export function TermsScreen() {
 
             <H>Om tjänsten</H>
             <P>
-              GrowQuest hjälper familjer att motivera barn till aktivitet genom uppdrag som ger
+              Rise hjälper familjer att motivera barn till aktivitet genom uppdrag som ger
               mynt, vilka kan växlas mot skärmtid, sparmål eller (efter förälderns godkännande)
               pengar. Appen är ett verktyg mellan dig och ditt barn — den hanterar inga riktiga
               betalningar; utbetalningar sker manuellt mellan förälder och barn.
@@ -118,7 +118,7 @@ export function TermsScreen() {
                 "Du ansvarar för ditt konto och för barnens profiler du skapar.",
                 "Använd bara appen för din egen familj.",
                 "Lägg inte upp olämpligt innehåll i foton, namn eller kommentarer.",
-                "All faktisk växling av mynt till pengar sker mellan dig och ditt barn — GrowQuest är inte part i det."
+                "All faktisk växling av mynt till pengar sker mellan dig och ditt barn — Rise är inte part i det."
               ]}
             />
 

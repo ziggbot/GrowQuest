@@ -59,10 +59,10 @@ export function ProfilePickerScreen({
         >
           <div style={{ fontSize: 28, marginBottom: 6 }}>🌳</div>
           <h2 style={{ color: C.text, fontSize: 22, margin: "0 0 6px", fontWeight: 800 }}>
-            Välkommen till GrowQuest
+            Välkommen till Rise
           </h2>
           <p style={{ color: C.text, fontSize: 14, margin: "0 0 8px", lineHeight: 1.5 }}>
-            GrowQuest är <strong>inte</strong> en app som stoppar skärmtid. Det är en app som
+            Rise är <strong>inte</strong> en app som stoppar skärmtid. Det är en app som
             gör att barn vill <strong>röra på sig, hjälpa till och skapa</strong> innan de
             sätter sig med skärmen.
           </p>

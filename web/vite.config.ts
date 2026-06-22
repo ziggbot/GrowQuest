@@ -12,8 +12,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["icon.svg", "favicon.svg"],
       manifest: {
-        name: "GrowQuest",
-        short_name: "GrowQuest",
+        name: "Rise",
+        short_name: "Rise",
         description: "Familjens uppdrag, mynt och skärmtid.",
         theme_color: "#fff4dc",
         background_color: "#fff4dc",

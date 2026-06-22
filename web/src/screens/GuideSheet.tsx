@@ -8,7 +8,7 @@ import { Sheet } from "./Sheet";
 
 export function GuideSheet({ onClose }: { onClose: () => void }) {
   return (
-    <Sheet title="Så funkar GrowQuest" onClose={onClose}>
+    <Sheet title="Så funkar Rise" onClose={onClose}>
       <div style={{ display: "grid", gap: 12 }}>
         <Kort>
           <div style={{ fontSize: 26, marginBottom: 4 }}>🌳</div>

@@ -1,4 +1,4 @@
-# GrowQuest web (PWA)
+# Rise web (PWA)
 
 React + Vite + Supabase. Develop on a PC, install on iPhone via Safari → **Add to Home Screen**. No Xcode, no Mac.
 
@@ -30,7 +30,7 @@ Every push to `main` redeploys automatically.
 
 1. Open the Vercel URL in **Safari** (Chrome on iOS doesn't support "Add to Home Screen" properly).
 2. Tap the **Share** button → **Add to Home Screen** → confirm.
-3. The GrowQuest icon appears on your home screen. Tap to launch — runs full-screen, no browser chrome.
+3. The Rise icon appears on your home screen. Tap to launch — runs full-screen, no browser chrome.
 
 ## Tech notes
 

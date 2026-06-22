@@ -124,7 +124,7 @@ export function AuthScreen() {
       <div style={{ maxWidth: 420, margin: "0 auto", paddingTop: 32 }}>
         <div style={{ textAlign: "center", marginBottom: 20 }}>
           <h1 style={{ color: C.gold, fontSize: 36, margin: 0, fontWeight: 800, letterSpacing: -0.5 }}>
-            GrowQuest
+            Rise
           </h1>
           <p style={{ color: C.muted, fontSize: 14, margin: "8px 0 0" }}>
             {mode === "signin"

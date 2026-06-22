@@ -321,7 +321,7 @@ export function HomeScreen() {
                 textShadow: "0 2px 4px rgba(0,0,0,0.15)"
               }}
             >
-              GrowQuest
+              Rise
             </div>
           </div>
           <button

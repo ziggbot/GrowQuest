@@ -1,8 +1,8 @@
 {
-  "name": "growquest-web",
+  "name": "rise-web",
   "private": true,
   "version": "0.1.0",
-  "description": "GrowQuest PWA — React + Vite + Supabase. Develop on PC, install on iPhone via Add to Home Screen.",
+  "description": "Rise PWA — React + Vite + Supabase. Develop on PC, install on iPhone via Add to Home Screen.",
   "type": "module",
   "scripts": {
     "dev": "vite",

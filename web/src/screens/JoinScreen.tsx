@@ -183,7 +183,7 @@ export function JoinScreen() {
                 <div style={{ fontSize: 56, lineHeight: 1 }}>{peek.avatar_emoji}</div>
                 <h2 style={{ margin: "8px 0 4px", color: C.text }}>Hej {peek.nickname}!</h2>
                 <p style={{ color: C.muted, fontSize: 13, margin: 0 }}>
-                  Du har blivit inbjuden till GrowQuest. Skriv den e-post du fick inbjudan på och
+                  Du har blivit inbjuden till Rise. Skriv den e-post du fick inbjudan på och
                   välj ett lösenord.
                 </p>
               </div>

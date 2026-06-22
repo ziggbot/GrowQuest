@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useState } from "react";
 import { useSession } from "./lib/session";
 import { AuthScreen } from "./screens/AuthScreen";
 import { HomeScreen } from "./screens/HomeScreen";
@@ -13,10 +14,14 @@ import { SettingsScreen } from "./screens/SettingsScreen";
 import { ResetPasswordScreen } from "./screens/ResetPasswordScreen";
 import { JoinScreen } from "./screens/JoinScreen";
 import { PrivacyScreen, TermsScreen } from "./screens/LegalScreen";
+import { SplashScreen, hasSeenSplash } from "./screens/SplashScreen";
 import { C } from "./design/tokens";
 
 export function App() {
   const { loading, user, childId, recovery } = useSession();
+  // Sits over everything until done. Once-per-install by default; tap
+  // anywhere to skip. localStorage decides if we even mount it.
+  const [splashing, setSplashing] = useState(() => !hasSeenSplash());
 
   if (loading) {
     return (
@@ -27,7 +32,9 @@ export function App() {
   }
 
   return (
-    <BrowserRouter>
+    <>
+      {splashing && <SplashScreen onDone={() => setSplashing(false)} />}
+      <BrowserRouter>
       <Routes>
         {/* Public — reachable without auth */}
         <Route path="/join" element={<JoinScreen />} />
@@ -72,5 +79,6 @@ export function App() {
         )}
       </Routes>
     </BrowserRouter>
+    </>
   );
 }
