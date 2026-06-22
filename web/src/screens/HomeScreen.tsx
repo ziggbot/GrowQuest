@@ -300,10 +300,12 @@ export function HomeScreen() {
   return (
     <ScreenContainer>
       <div style={{ maxWidth: 480, margin: "0 auto" }}>
-        {/* Top bar */}
+        {/* Top bar — 3-column grid so RISE sits dead-center
+            regardless of how many action buttons sit on the right. */}
         <div
           style={{
-            display: "flex",
+            display: "grid",
+            gridTemplateColumns: "1fr auto 1fr",
             alignItems: "center",
             padding: "8px 4px 12px",
             borderBottom: `1px solid ${C.border}`,
@@ -311,64 +313,66 @@ export function HomeScreen() {
             gap: 8
           }}
         >
-          <div style={{ flex: 1 }}>
-            <div
+          <div />
+          <div
+            style={{
+              color: C.gold,
+              fontWeight: 900,
+              fontSize: 30,
+              letterSpacing: 1,
+              textShadow: "0 2px 4px rgba(0,0,0,0.15)",
+              textAlign: "center"
+            }}
+          >
+            RISE
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+            <button
+              onClick={() => setShowGuide(true)}
+              aria-label="Föräldraguide"
+              title="Föräldraguide"
               style={{
+                background: "transparent",
+                border: "none",
+                borderRadius: 999,
+                width: 40,
+                height: 40,
+                padding: 0,
                 color: C.gold,
-                fontWeight: 900,
-                fontSize: 30,
-                letterSpacing: -0.5,
-                textShadow: "0 2px 4px rgba(0,0,0,0.15)"
+                cursor: "pointer",
+                fontSize: 24,
+                fontWeight: 800,
+                lineHeight: 1,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center"
               }}
             >
-              Rise
-            </div>
+              ?
+            </button>
+            <button
+              onClick={() => nav("/settings")}
+              aria-label="Inställningar"
+              title="Inställningar"
+              style={{
+                background: "transparent",
+                border: "none",
+                borderRadius: 999,
+                width: 40,
+                height: 40,
+                padding: 0,
+                color: C.gold,
+                cursor: "pointer",
+                fontSize: 26,
+                lineHeight: 1,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
+            >
+              ⚙
+            </button>
           </div>
-          <button
-            onClick={() => setShowGuide(true)}
-            aria-label="Föräldraguide"
-            title="Föräldraguide"
-            style={{
-              background: "transparent",
-              border: "none",
-              borderRadius: 999,
-              width: 40,
-              height: 40,
-              padding: 0,
-              color: C.gold,
-              cursor: "pointer",
-              fontSize: 24,
-              fontWeight: 800,
-              lineHeight: 1,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-          >
-            ?
-          </button>
-          <button
-            onClick={() => nav("/settings")}
-            aria-label="Inställningar"
-            title="Inställningar"
-            style={{
-              background: "transparent",
-              border: "none",
-              borderRadius: 999,
-              width: 40,
-              height: 40,
-              padding: 0,
-              color: C.gold,
-              cursor: "pointer",
-              fontSize: 26,
-              lineHeight: 1,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center"
-            }}
-          >
-            ⚙
-          </button>
         </div>
 
         {/* Perspective picker */}
