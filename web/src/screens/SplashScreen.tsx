@@ -12,7 +12,7 @@ import { useEffect, useState } from "react";
 //   2.5s   whole overlay fades out, app appears
 //   2.9s   onDone fires, we unmount
 
-const KEY = "rise:splash:lastShown:v1";
+const KEY = "rise:splash:lastShown:v2";
 
 export function hasSeenSplash(): boolean {
   if (typeof window === "undefined") return true;
