@@ -1,9 +1,17 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import type { ProfileConfig } from "../lib/types";
 import { PROFILER } from "../lib/profiler";
 import { C } from "../design/tokens";
-import { Knapp, ScreenContainer } from "../design/components";
+import { Kort, Knapp, ScreenContainer } from "../design/components";
+
+// First-run welcome for a brand-new family. The old "pick a family
+// profile" step is gone — screen time and economy are configured per
+// child under Hantera now. We still need a profile_configs row to exist
+// (redeem_screen_time reads screen_time_multiplier from it), so we seed
+// the balanced default silently when the parent taps "Kom igång".
+const DEFAULT_PROFILE =
+  PROFILER.find((p) => p.id === "balans") ?? PROFILER[0];
 
 export function ProfilePickerScreen({
   familyId,
@@ -12,25 +20,19 @@ export function ProfilePickerScreen({
   familyId: string;
   onSaved: (p: ProfileConfig) => void;
 }) {
-  const [selected, setSelected] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => setErr(null), [selected]);
-
-  async function save() {
-    if (!selected) return;
-    const entry = PROFILER.find((p) => p.id === selected);
-    if (!entry) return;
+  async function start() {
     setSaving(true);
     setErr(null);
     try {
       const row = {
         family_id: familyId,
-        profile_id: entry.id,
-        uppdrag_multiplier: entry.uppdrag_multiplier,
-        screen_time_multiplier: entry.screen_time_multiplier,
-        daily_limit_minutes: entry.daily_limit_minutes
+        profile_id: DEFAULT_PROFILE.id,
+        uppdrag_multiplier: DEFAULT_PROFILE.uppdrag_multiplier,
+        screen_time_multiplier: DEFAULT_PROFILE.screen_time_multiplier,
+        daily_limit_minutes: DEFAULT_PROFILE.daily_limit_minutes
       };
       const { error } = await supabase
         .from("profile_configs")
@@ -46,94 +48,48 @@ export function ProfilePickerScreen({
 
   return (
     <ScreenContainer>
-      <div style={{ maxWidth: 480, margin: "0 auto" }}>
-        {/* Welcome / positioning */}
-        <div
-          style={{
-            background: `linear-gradient(135deg, ${C.gold}22, ${C.green}1f)`,
-            border: `1px solid ${C.gold}55`,
-            borderRadius: 18,
-            padding: 18,
-            marginBottom: 18
-          }}
-        >
-          <div style={{ fontSize: 28, marginBottom: 6 }}>🌳</div>
-          <h2 style={{ color: C.text, fontSize: 22, margin: "0 0 6px", fontWeight: 800 }}>
+      <div style={{ maxWidth: 480, margin: "0 auto", display: "grid", gap: 16, paddingTop: 24 }}>
+        <Kort>
+          <div style={{ fontSize: 30, marginBottom: 8 }}>🌳</div>
+          <h2 style={{ color: C.text, fontSize: 22, margin: "0 0 8px", fontWeight: 800 }}>
             Välkommen till Rise
           </h2>
-          <p style={{ color: C.text, fontSize: 14, margin: "0 0 8px", lineHeight: 1.5 }}>
-            Rise är <strong>inte</strong> en app som stoppar skärmtid. Det är en app som
-            gör att barn vill <strong>röra på sig, hjälpa till och skapa</strong> innan de
-            sätter sig med skärmen.
+          <p style={{ color: C.text, fontSize: 14, margin: "0 0 10px", lineHeight: 1.55 }}>
+            Rise gör skärmtid till något barnet förtjänar. Genom uppdrag som får dem att{" "}
+            <strong>röra på sig, hjälpa till och skapa</strong> byggs en mer aktiv och medveten
+            mobilanvändning.
           </p>
-          <p style={{ color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.4 }}>
-            Barnet förtjänar mynt genom uppdrag. 1 mynt = 1 minut skärmtid. Föräldern
-            bestämmer reglerna; barnet bygger vanor.
+          <p style={{ color: C.muted, fontSize: 13, margin: 0, lineHeight: 1.5 }}>
+            1 mynt = 1 minut skärmtid. Du sätter reglerna per barn — de bygger vanan.
           </p>
-        </div>
+        </Kort>
 
-        <h3 style={{ color: C.text, fontSize: 18, margin: "8px 0 4px", fontWeight: 800 }}>
-          Välj din familjs profil
-        </h3>
-        <p style={{ color: C.muted, fontSize: 12, margin: "0 0 14px" }}>
-          Styr hur generös ekonomin är. Allt går att finjustera senare i Inställningar.
-        </p>
+        <Kort>
+          <h3 style={{ color: C.text, fontSize: 15, margin: "0 0 8px", fontWeight: 800 }}>
+            Så kommer du igång
+          </h3>
+          <ol
+            style={{
+              margin: 0,
+              paddingLeft: 18,
+              color: C.text,
+              fontSize: 13,
+              lineHeight: 1.6
+            }}
+          >
+            <li>Lägg till ditt barn.</li>
+            <li>
+              Ställ in skärmtid och ekonomi per barn under{" "}
+              <strong>Hantera</strong>.
+            </li>
+            <li>Planera uppdrag — barnet utför, du godkänner, mynt delas ut.</li>
+          </ol>
+        </Kort>
 
-        <div style={{ display: "grid", gap: 12 }}>
-          {PROFILER.map((p) => {
-            const isOn = selected === p.id;
-            return (
-              <button
-                key={p.id}
-                onClick={() => setSelected(p.id)}
-                style={{
-                  textAlign: "left",
-                  padding: 16,
-                  background: `${p.färg}1a`,
-                  border: `${isOn ? 2 : 1}px solid ${isOn ? p.färg : C.border}`,
-                  borderRadius: 18,
-                  cursor: "pointer",
-                  color: C.text
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <div style={{ fontSize: 28 }}>{p.icon}</div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: p.färg, fontWeight: 800, fontSize: 18 }}>{p.namn}</div>
-                    <div style={{ color: C.muted, fontSize: 12 }}>{p.tagline}</div>
-                  </div>
-                  {isOn && <div style={{ color: p.färg, fontSize: 20 }}>✓</div>}
-                </div>
-                <p style={{ fontSize: 13, margin: "10px 0 8px", lineHeight: 1.4 }}>{p.beskrivning}</p>
-                <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 8, display: "grid", gap: 4, fontSize: 12 }}>
-                  <Row label="Uppdrag" value={p.exempelUppdrag} />
-                  <Row label="Skärmtid" value={p.exempelSkärmtid} />
-                  <Row label="Dagsgräns" value={p.exempelDagsgräns} />
-                </div>
-              </button>
-            );
-          })}
-        </div>
+        {err && <p style={{ color: C.red, fontSize: 13, margin: 0 }}>{err}</p>}
 
-        {err && <p style={{ color: C.red, fontSize: 13, marginTop: 12 }}>{err}</p>}
-
-        <div style={{ marginTop: 16 }}>
-          <Knapp
-            title={saving ? "Sparar…" : "Bekräfta"}
-            onClick={save}
-            disabled={!selected || saving}
-          />
-        </div>
+        <Knapp title={saving ? "Förbereder…" : "Kom igång"} onClick={start} disabled={saving} />
       </div>
     </ScreenContainer>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between" }}>
-      <span style={{ color: C.muted }}>{label}</span>
-      <span>{value}</span>
-    </div>
   );
 }
