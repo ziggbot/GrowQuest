@@ -42,10 +42,22 @@ export function AuthScreen() {
           password,
           options: { emailRedirectTo: `${window.location.origin}/` }
         });
-        if (error) throw error;
-        if (!data.session) {
+        // Don't reveal whether the address already has an account — that
+        // would let anyone enumerate our users. With email confirmation
+        // on, Supabase already returns an obfuscated user (no session,
+        // empty identities) for an existing address; an "already
+        // registered" error can still surface on some configs, so we
+        // swallow that one specific case and show the same neutral
+        // message either way. A genuinely new address gets its mail; an
+        // existing one doesn't, and its real owner can use "Glömt
+        // lösenord?" — neither outcome is distinguishable here.
+        if (error && !/already.*regist|already.*exist/i.test(error.message)) {
+          throw error;
+        }
+        if (!data?.session) {
           setInfo(
-            `Konto skapat! Vi har skickat en bekräftelse till ${email}. Klicka på länken i mejlet för att logga in.`
+            `Om adressen är ledig har vi skickat ett bekräftelsemejl till ${email}. ` +
+              `Klicka på länken i mejlet för att logga in.`
           );
         }
       } else if (mode === "signin") {
@@ -89,7 +101,6 @@ export function AuthScreen() {
       if (/email not confirmed/i.test(msg))
         setErr("Bekräfta din e-post först — klicka på länken i mejlet vi skickade.");
       else if (/invalid login/i.test(msg)) setErr("Fel e-post eller lösenord.");
-      else if (/already registered/i.test(msg)) setErr("E-postadressen är redan registrerad.");
       else setErr(msg);
     } finally {
       setWorking(false);
