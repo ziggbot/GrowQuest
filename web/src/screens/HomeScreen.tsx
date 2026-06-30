@@ -329,16 +329,16 @@ export function HomeScreen() {
             aria-label="Föräldraguide"
             title="Föräldraguide"
             style={{
-              background: "transparent",
-              border: "none",
+              background: `${C.gold}1f`,
+              border: `1.5px solid ${C.gold}66`,
               borderRadius: 999,
               width: 40,
               height: 40,
               padding: 0,
               color: C.gold,
               cursor: "pointer",
-              fontSize: 24,
-              fontWeight: 800,
+              fontSize: 22,
+              fontWeight: 900,
               lineHeight: 1,
               display: "inline-flex",
               alignItems: "center",
