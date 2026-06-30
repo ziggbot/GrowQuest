@@ -75,10 +75,34 @@ export function AddChildSheet({
   const [deleting, setDeleting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const libraryInputRef = useRef<HTMLInputElement>(null);
 
   const isEditing = !!editing;
   const canSubmit = !saving && nickname.trim().length >= 1 && nickname.trim().length <= 30;
+
+  // Shared by the camera and library inputs. Compresses to a small JPEG
+  // data URL we can store inline on the row.
+  async function handlePhotoFile(
+    file: File | undefined,
+    ref: React.RefObject<HTMLInputElement>
+  ) {
+    if (!file) return;
+    setPhotoBusy(true);
+    setErr(null);
+    try {
+      const data = await compressImageToDataUrl(file, 400, 0.78);
+      setPhotoData(data);
+    } catch (ex) {
+      setErr(
+        (ex as Error).message ||
+          "Kunde inte läsa bilden. Prova att välja en bild från biblioteket istället."
+      );
+    } finally {
+      setPhotoBusy(false);
+      if (ref.current) ref.current.value = "";
+    }
+  }
 
   async function save() {
     if (!canSubmit) return;
@@ -193,26 +217,25 @@ export function AddChildSheet({
           <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>
             Foto (frivilligt)
           </label>
+          <p style={{ color: C.muted, fontSize: 11, margin: "0 0 10px", lineHeight: 1.4 }}>
+            Tar du ett foto ersätter det symbolen överallt i appen.
+          </p>
+          {/* Two inputs: one opens the camera, one the photo library /
+              files. iOS hides the library option when `capture` is set,
+              so they have to be separate. */}
           <input
-            ref={fileInputRef}
+            ref={cameraInputRef}
             type="file"
             accept="image/*"
             capture="user"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
-              setPhotoBusy(true);
-              setErr(null);
-              try {
-                const data = await compressImageToDataUrl(file, 400, 0.78);
-                setPhotoData(data);
-              } catch (ex) {
-                setErr((ex as Error).message);
-              } finally {
-                setPhotoBusy(false);
-                if (fileInputRef.current) fileInputRef.current.value = "";
-              }
-            }}
+            onChange={(e) => void handlePhotoFile(e.target.files?.[0], cameraInputRef)}
+            style={{ display: "none" }}
+          />
+          <input
+            ref={libraryInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(e) => void handlePhotoFile(e.target.files?.[0], libraryInputRef)}
             style={{ display: "none" }}
           />
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -241,23 +264,46 @@ export function AddChildSheet({
               )}
             </div>
             <div style={{ display: "grid", gap: 6, flex: 1 }}>
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={photoBusy}
-                style={{
-                  padding: "8px 12px",
-                  background: C.gold,
-                  border: "none",
-                  borderRadius: 10,
-                  color: "#fff",
-                  fontWeight: 700,
-                  fontSize: 13,
-                  cursor: "pointer"
-                }}
-              >
-                {photoBusy ? "Bearbetar…" : photoData ? "📷 Byt foto" : "📷 Ta/ladda upp foto"}
-              </button>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => cameraInputRef.current?.click()}
+                  disabled={photoBusy}
+                  style={{
+                    flex: 1,
+                    padding: "8px 10px",
+                    background: C.gold,
+                    border: "none",
+                    borderRadius: 10,
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    opacity: photoBusy ? 0.6 : 1
+                  }}
+                >
+                  {photoBusy ? "Bearbetar…" : "📷 Ta foto"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => libraryInputRef.current?.click()}
+                  disabled={photoBusy}
+                  style={{
+                    flex: 1,
+                    padding: "8px 10px",
+                    background: "transparent",
+                    border: `1px solid ${C.gold}`,
+                    borderRadius: 10,
+                    color: C.gold,
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer",
+                    opacity: photoBusy ? 0.6 : 1
+                  }}
+                >
+                  🖼 Välj bild
+                </button>
+              </div>
               {photoData && (
                 <button
                   type="button"

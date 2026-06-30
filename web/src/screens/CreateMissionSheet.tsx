@@ -10,6 +10,7 @@ import {
 } from "../lib/templates";
 import { C } from "../design/tokens";
 import { Kort, Knapp, Pill, Input } from "../design/components";
+import { Avatar } from "../design/Avatar";
 import { Sheet } from "./Sheet";
 
 const RECURRENCE_LABELS: Record<Recurrence, string> = {
@@ -253,7 +254,7 @@ export function CreateMissionSheet({
                   gap: 6
                 }}
               >
-                <span>{c.avatar_emoji}</span>
+                <Avatar child={c} size={18} />
                 <span>{c.nickname}</span>
               </button>
             ))}
@@ -263,7 +264,7 @@ export function CreateMissionSheet({
         {selectedChild && (
           <Kort>
             <div style={{ display: "flex", alignItems: "center", marginBottom: 8, gap: 6 }}>
-              <span style={{ fontSize: 18 }}>{selectedChild.avatar_emoji}</span>
+              <Avatar child={selectedChild} size={18} />
               <label style={{ color: C.muted, fontSize: 12, flex: 1 }}>
                 {selectedChild.nickname}s uppdrag ({assignedToCurrent.length})
               </label>

@@ -221,10 +221,15 @@ export function WalletScreen() {
                 display: "grid",
                 placeItems: "center",
                 margin: "0 auto 8px",
-                fontSize: 44
+                fontSize: 44,
+                overflow: "hidden"
               }}
             >
-              {child?.avatar_emoji}
+              {child?.avatar_photo ? (
+                <Avatar child={child} size={84} />
+              ) : (
+                child?.avatar_emoji
+              )}
             </div>
             <h2 style={{ margin: "4px 0 6px", color: CK.text, fontWeight: 800 }}>
               {child?.nickname}

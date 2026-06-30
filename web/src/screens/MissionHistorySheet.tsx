@@ -4,6 +4,7 @@ import type { ChildProfile, Mission, SubmissionStatus } from "../lib/types";
 import { CK } from "../design/tokens";
 import { KortKid, PillKid } from "../design/components";
 import { BackButton } from "../design/BackButton";
+import { Avatar } from "../design/Avatar";
 
 type HistoryStatus = SubmissionStatus | "missed";
 
@@ -198,8 +199,9 @@ export function MissionHistorySheet({
       >
         <div style={{ display: "flex", alignItems: "center", marginBottom: 14, gap: 10 }}>
           <BackButton onClick={onClose} />
+          <Avatar child={child} size={24} />
           <h3 style={{ margin: 0, flex: 1, color: CK.text, fontWeight: 800 }}>
-            {child.avatar_emoji} Historik
+            Historik
           </h3>
         </div>
 
