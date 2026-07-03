@@ -16,6 +16,12 @@ declare
   v_child_ids  uuid[];
   v_child_auth uuid[];
 begin
+  -- Guard: refuse to run with the placeholder still in place, so a
+  -- blind paste-and-run can never delete anything by accident.
+  if v_email = 'CHANGE-ME@example.com' then
+    raise exception 'Set v_email to the tester''s address before running.';
+  end if;
+
   select id into v_user_id from auth.users where lower(email) = lower(v_email);
   if v_user_id is null then
     raise notice 'No auth user for %, nothing to do.', v_email;

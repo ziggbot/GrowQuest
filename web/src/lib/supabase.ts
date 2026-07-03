@@ -13,6 +13,9 @@ export const supabase = createClient(url, anon, {
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: false
+    // Must be true: the password-recovery and email-confirmation links
+    // land with tokens in the URL hash. Without this the tokens are
+    // dropped, PASSWORD_RECOVERY never fires and reset is impossible.
+    detectSessionInUrl: true
   }
 });

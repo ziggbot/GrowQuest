@@ -448,7 +448,7 @@ function ChangePasswordSheet({ email, onClose }: { email: string; onClose: () =>
   const canSubmit =
     !saving &&
     currentPw.length >= 1 &&
-    newPw.length >= 8 &&
+    newPw.length >= 10 &&
     newPw === confirm &&
     newPw !== currentPw;
 
@@ -507,7 +507,7 @@ function ChangePasswordSheet({ email, onClose }: { email: string; onClose: () =>
                 type="password"
                 value={newPw}
                 onChange={(e) => setNewPw(e.target.value)}
-                placeholder="Minst 8 tecken"
+                placeholder="Minst 10 tecken"
                 autoComplete="new-password"
               />
             </div>

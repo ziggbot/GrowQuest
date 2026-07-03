@@ -15,6 +15,8 @@ import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
 import { Avatar } from "../design/Avatar";
 import { BackButton } from "../design/BackButton";
 import { playPop, playReject } from "../design/sounds";
+import { safeImageSrc } from "../lib/image";
+import { CHILD_PROFILE_COLS } from "../lib/columns";
 
 type Item =
   | {
@@ -74,9 +76,7 @@ export function InboxScreen() {
         supabase.from("missions").select("*").eq("family_id", familyId),
         supabase
           .from("child_profiles")
-          .select(
-            "id, family_id, nickname, avatar_emoji, avatar_photo, age_band, gender, global_leaderboard_opt_in, daily_limit_minutes_override, email, auth_user_id"
-          )
+          .select(CHILD_PROFILE_COLS)
           .eq("family_id", familyId)
       ]);
       if (subsRes.error) throw subsRes.error;
@@ -87,7 +87,9 @@ export function InboxScreen() {
       const goalRows = gRes.error ? [] : ((gRes.data ?? []) as SavingsGoal[]);
 
       const missions = new Map((mRes.data as Mission[]).map((m) => [m.id, m]));
-      const children = new Map((cRes.data as ChildProfile[]).map((c) => [c.id, c]));
+      const children = new Map(
+        ((cRes.data ?? []) as unknown as ChildProfile[]).map((c) => [c.id, c])
+      );
 
       const next: Item[] = [];
       for (const s of (subsRes.data ?? []) as MissionSubmission[]) {
@@ -100,7 +102,7 @@ export function InboxScreen() {
             submission: s,
             mission: m,
             child: c,
-            photoUrl: s.photo_data
+            photoUrl: safeImageSrc(s.photo_data)
           });
         }
       }

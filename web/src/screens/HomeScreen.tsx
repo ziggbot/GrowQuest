@@ -15,7 +15,7 @@ import { Kort, Pill, Knapp, ScreenContainer } from "../design/components";
 import { Avatar } from "../design/Avatar";
 import { playPop } from "../design/sounds";
 import { notify } from "../lib/notifications";
-import { computeMissionVisibility } from "../lib/missions";
+import { computeMissionVisibility, startOfDayUTC } from "../lib/missions";
 import { CHILD_PROFILE_COLS } from "../lib/columns";
 import { ProfilePickerScreen } from "./ProfilePickerScreen";
 import { CreateMissionSheet } from "./CreateMissionSheet";
@@ -69,9 +69,12 @@ export function HomeScreen() {
     }
   }, [perspective]);
 
-  async function reload() {
+  // background=true (realtime events, midnight rollover) refreshes data
+  // without flipping `loading` — otherwise every child submission blanks
+  // the whole dashboard to the "Förbereder din familj…" screen.
+  async function reload(background = false) {
     if (!familyId) return;
-    setLoading(true);
+    if (!background) setLoading(true);
     setErr(null);
     try {
       // Best-effort: clear any pending submissions that have aged past the
@@ -79,7 +82,8 @@ export function HomeScreen() {
       // hasn't shipped yet.
       void supabase.rpc("auto_approve_stale", { p_family_id: familyId });
       const now = new Date();
-      const startOfToday = new Date(now.setHours(0, 0, 0, 0));
+      // UTC day boundary — must match the server's date_trunc('day', UTC).
+      const startOfToday = startOfDayUTC(now);
       const startOfTodayIso = startOfToday.toISOString();
       // 30 days back covers daily / weekly visibility checks; once-missions
       // older than that are already hidden by the created_at < today rule.
@@ -198,7 +202,7 @@ export function HomeScreen() {
               url: "/inbox"
             });
           }
-          void reload();
+          void reload(true);
         }
       )
       .subscribe();
@@ -222,7 +226,7 @@ export function HomeScreen() {
             tag: `submission:${s.child_id}`,
             url: "/inbox"
           });
-          void reload();
+          void reload(true);
         }
       )
       .subscribe();
@@ -249,7 +253,7 @@ export function HomeScreen() {
               });
             }
           }
-          void reload();
+          void reload(true);
         }
       )
       .subscribe();
@@ -272,7 +276,7 @@ export function HomeScreen() {
     const ms = nextMidnight.getTime() - now.getTime() + 200;
     const timer = setTimeout(() => {
       setTodayKey(new Date().toDateString());
-      void reload();
+      void reload(true);
     }, ms);
     return () => clearTimeout(timer);
   }, [todayKey, familyId]);
@@ -443,15 +447,15 @@ export function HomeScreen() {
           <CreateMissionSheet
             familyId={familyId}
             userId={user!.id}
-            multiplier={profileEntry.uppdrag_multiplier}
+            multiplier={profile?.uppdrag_multiplier ?? profileEntry.uppdrag_multiplier}
             children={children}
             missions={missions}
             onClose={() => setShowCreateMission(false)}
             onCreated={() => {
               setShowCreateMission(false);
-              void reload();
+              void reload(true);
             }}
-            onMissionsChanged={() => void reload()}
+            onMissionsChanged={() => void reload(true)}
           />
         )}
       </div>

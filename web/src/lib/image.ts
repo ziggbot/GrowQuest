@@ -2,6 +2,15 @@
 // We keep these small enough to store inline in a mission_submissions row
 // (~800px longest edge, ~0.75 quality → roughly 60–120 KB per photo).
 
+// Render-time guard for stored photo values. Photos are written by
+// family members and RLS lets any member insert an arbitrary string via
+// the raw API, so never trust the value to be an image — a crafted
+// "javascript:" URI in an <a href> would execute in the viewer's
+// session. Returns the value only if it's an image data URL.
+export function safeImageSrc(value: string | null | undefined): string | null {
+  return value && value.startsWith("data:image/") ? value : null;
+}
+
 export async function compressImageToDataUrl(
   file: File,
   maxDim = 800,

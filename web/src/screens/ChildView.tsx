@@ -8,7 +8,7 @@ import { KortKid, PillKid } from "../design/components";
 import { MissionHistorySheet } from "./MissionHistorySheet";
 import { JumperAnimation, CoinRain } from "../design/lottie";
 import { computeStreak } from "../lib/streak";
-import { computeMissionVisibility } from "../lib/missions";
+import { computeMissionVisibility, startOfDayUTC } from "../lib/missions";
 
 export function ChildView({
   child,
@@ -39,11 +39,13 @@ export function ChildView({
     setErr(null);
     try {
       const now = new Date();
-      const startOfToday = new Date(now);
-      startOfToday.setHours(0, 0, 0, 0);
+      // UTC day boundary — matches the server's mynt_today / redeem gate.
+      const startOfToday = startOfDayUTC(now);
 
+      // 90 days so a long streak doesn't render capped at ~31 dagar
+      // (the server recounts on claim; this is display data).
       const lookback = new Date(now);
-      lookback.setDate(lookback.getDate() - 30);
+      lookback.setDate(lookback.getDate() - 90);
       const [mRes, sRes, lRes, pRes] = await Promise.all([
         supabase
           .from("missions")

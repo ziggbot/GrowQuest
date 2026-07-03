@@ -71,12 +71,15 @@ export function templatesForAge(band: AgeBand): readonly MissionTemplate[] {
   return MISSION_TEMPLATES.filter((t) => t.ageBand === band);
 }
 
+// The epsilon compensates for binary-float products landing a hair
+// below x.5 where the server's numeric math yields exactly x.5 —
+// keeps the client estimate equal to what the server actually charges.
 export function estimateMissionReward(base: number, multiplier: number): number {
-  return Math.max(0, Math.round((base * multiplier) / 5) * 5);
+  return Math.max(0, Math.round((base * multiplier) / 5 + 1e-9) * 5);
 }
 
 // 1 mynt = 1 minute, scaled by the family's screen_time_multiplier.
 // (Strict 1.6 → 60 min costs 96 mynt; Free 0.65 → 60 min costs 39.)
 export function estimateScreenTimeCost(minutes: number, multiplier: number): number {
-  return Math.max(1, Math.round(minutes * multiplier));
+  return Math.max(1, Math.round(minutes * multiplier + 1e-9));
 }

@@ -16,17 +16,21 @@ type SubmissionRow = Pick<
   "mission_id" | "status" | "submitted_at" | "reviewed_at" | "child_id"
 >;
 
-export function startOfDayLocal(now: Date = new Date()): Date {
-  const d = new Date(now);
-  d.setHours(0, 0, 0, 0);
-  return d;
+// "Today" must match the server's definition. Every RPC and view uses
+// date_trunc('day', now() at time zone 'UTC'), so the client counts
+// days in UTC too — otherwise a Swedish device (UTC+1/+2) disagrees
+// with the server between local midnight and 01:00/02:00: missions
+// shown as done "today" while redeem_screen_time still rejects, and
+// mynt-today numbers that differ from the leaderboard view.
+export function startOfDayUTC(now: Date = new Date()): Date {
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 }
 
-export function startOfISOWeekLocal(now: Date = new Date()): Date {
-  const d = startOfDayLocal(now);
+export function startOfISOWeekUTC(now: Date = new Date()): Date {
+  const d = startOfDayUTC(now);
   // ISO week starts Monday (0=Sun → 6, 1=Mon → 0, ...)
-  const dow = (d.getDay() + 6) % 7;
-  d.setDate(d.getDate() - dow);
+  const dow = (d.getUTCDay() + 6) % 7;
+  d.setUTCDate(d.getUTCDate() - dow);
   return d;
 }
 
@@ -43,8 +47,8 @@ export function computeMissionVisibility(
   childId: string,
   now: Date = new Date()
 ): MissionVisibility {
-  const startOfToday = startOfDayLocal(now);
-  const startOfWeek = startOfISOWeekLocal(now);
+  const startOfToday = startOfDayUTC(now);
+  const startOfWeek = startOfISOWeekUTC(now);
 
   const submittedTodayIds = new Set<string>();
   const hiddenApprovedIds = new Set<string>();

@@ -5,6 +5,7 @@ import { useSession } from "../lib/session";
 import type { Mission } from "../lib/types";
 import { tipsFor } from "../lib/tips";
 import { compressImageToDataUrl } from "../lib/image";
+import { startOfDayUTC } from "../lib/missions";
 import { playSubmit } from "../design/sounds";
 import { CK } from "../design/tokens";
 import { ChildScreenContainer, KortKid, KnappKid, PillKid } from "../design/components";
@@ -48,7 +49,7 @@ export function MissionDetailScreen() {
         if (error) throw error;
         setMission(data as Mission);
         if (childId) {
-          const start = new Date(new Date().setHours(0, 0, 0, 0)).toISOString();
+          const start = startOfDayUTC().toISOString();
           const { data: subs } = await supabase
             .from("mission_submissions")
             .select("id")

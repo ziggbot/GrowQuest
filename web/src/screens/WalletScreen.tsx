@@ -12,6 +12,7 @@ import type {
 } from "../lib/types";
 import { currentStadium, nextStadium } from "../lib/karaktar";
 import { CHILD_PROFILE_COLS } from "../lib/columns";
+import { startOfDayUTC } from "../lib/missions";
 import { C, CK } from "../design/tokens";
 import {
   Kort,
@@ -75,10 +76,15 @@ export function WalletScreen() {
           .from("redemptions")
           .select("*")
           .eq("child_id", childId)
-          .gte("started_at", new Date(new Date().setHours(0, 0, 0, 0)).toISOString())
+          .gte("started_at", startOfDayUTC().toISOString())
           .order("started_at", { ascending: false })
       ]);
       if (chRes.error) throw chRes.error;
+      // Surface secondary-query failures instead of silently rendering
+      // "0 🪙" or hiding the redeem buttons on a transient error.
+      const secondaryErr =
+        balRes.error ?? ledRes.error ?? prRes.error ?? cfgRes.error ?? redRes.error;
+      if (secondaryErr) setErr(secondaryErr.message);
       setChild(chRes.data as unknown as ChildProfile);
       setBalance(((balRes.data as any)?.balance ?? 0) | 0);
       setEntries((ledRes.data ?? []) as CoinLedgerEntry[]);
@@ -103,16 +109,18 @@ export function WalletScreen() {
         .order("created_at");
       const fetchedGoals = (goalsData ?? []) as SavingsGoal[];
       if (fetchedGoals.length > 0) {
+        // Net saved = deposits (negative rows) minus withdrawals
+        // (positive rows) — summing -amount handles both signs.
         const { data: deps } = await supabase
           .from("coin_ledger")
           .select("ref_savings_goal, amount_mynt")
           .eq("child_id", childId)
-          .eq("reason", "savings_deposit");
+          .in("reason", ["savings_deposit", "savings_withdraw"]);
         const savedMap = new Map<string, number>();
         for (const d of (deps ?? []) as { ref_savings_goal: string; amount_mynt: number }[]) {
-          savedMap.set(d.ref_savings_goal, (savedMap.get(d.ref_savings_goal) ?? 0) + Math.abs(d.amount_mynt));
+          savedMap.set(d.ref_savings_goal, (savedMap.get(d.ref_savings_goal) ?? 0) - d.amount_mynt);
         }
-        setGoals(fetchedGoals.map((g) => ({ ...g, saved: savedMap.get(g.id) ?? 0 })));
+        setGoals(fetchedGoals.map((g) => ({ ...g, saved: Math.max(0, savedMap.get(g.id) ?? 0) })));
       } else {
         setGoals([]);
       }
@@ -491,7 +499,7 @@ export function WalletScreen() {
             <RedeemSheet
               child={child}
               multiplier={config.screen_time_multiplier}
-              dailyLimit={child.daily_limit_minutes_override ?? config.daily_limit_minutes}
+              dailyLimit={child.daily_limit_minutes_override ?? 60}
               usedToday={usedToday}
               onClose={() => setShowRedeem(false)}
               onRedeemed={() => {
@@ -870,7 +878,7 @@ export function WalletScreen() {
           <RedeemSheet
             child={child}
             multiplier={config.screen_time_multiplier}
-            dailyLimit={child.daily_limit_minutes_override ?? config.daily_limit_minutes}
+            dailyLimit={child.daily_limit_minutes_override ?? 60}
             usedToday={usedToday}
             onClose={() => setShowRedeem(false)}
             onRedeemed={() => {
@@ -971,6 +979,10 @@ function reasonLabel(reason: string): string {
       return "Sparat till mål";
     case "savings_withdraw":
       return "Uttag från mål";
+    case "streak_bonus":
+      return "Streakbonus";
+    case "expiry":
+      return "Mynt gick ut";
     default:
       return reason;
   }

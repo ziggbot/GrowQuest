@@ -18,7 +18,7 @@ export function ResetPasswordScreen() {
   const [done, setDone] = useState(false);
 
   const mismatch = pw.length > 0 && confirm.length > 0 && pw !== confirm;
-  const canSubmit = !saving && pw.length >= 8 && pw === confirm;
+  const canSubmit = !saving && pw.length >= 10 && pw === confirm;
 
   async function save() {
     if (!canSubmit) return;
@@ -31,7 +31,10 @@ export function ResetPasswordScreen() {
       return;
     }
     setDone(true);
-    clearRecovery();
+    // Let the success card show briefly — clearRecovery() immediately
+    // reroutes away from this screen, so calling it in the same commit
+    // made the confirmation unreachable.
+    window.setTimeout(clearRecovery, 1200);
   }
 
   return (
@@ -79,7 +82,7 @@ export function ResetPasswordScreen() {
                   type="password"
                   value={pw}
                   onChange={(e) => setPw(e.target.value)}
-                  placeholder="Minst 8 tecken"
+                  placeholder="Minst 10 tecken"
                   autoComplete="new-password"
                   autoFocus
                 />

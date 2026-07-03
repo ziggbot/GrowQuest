@@ -75,7 +75,7 @@ export function JoinScreen() {
     !working &&
     peek?.valid === true &&
     email.includes("@") &&
-    pw.length >= 8 &&
+    pw.length >= 10 &&
     pw === confirm;
 
   async function accept() {
@@ -209,7 +209,7 @@ export function JoinScreen() {
                     type="password"
                     value={pw}
                     onChange={(e) => setPw(e.target.value)}
-                    placeholder="Minst 8 tecken"
+                    placeholder="Minst 10 tecken"
                     autoComplete="new-password"
                   />
                 </div>

@@ -1,5 +1,6 @@
 import type { CSSProperties } from "react";
 import type { ChildProfile } from "../lib/types";
+import { safeImageSrc } from "../lib/image";
 
 // Single source of truth for showing a child's face/avatar. If a photo
 // has been uploaded it gets rendered as a circular image; otherwise we
@@ -23,10 +24,11 @@ export function Avatar({
   size: number;
   style?: CSSProperties;
 }) {
-  if (child.avatar_photo) {
+  const photo = safeImageSrc(child.avatar_photo);
+  if (photo) {
     return (
       <img
-        src={child.avatar_photo}
+        src={photo}
         alt={child.nickname}
         style={{
           width: size,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { ReactNode } from "react";
 import type { Gender } from "../lib/types";
 import { AdventureBoy, AdventureGirl } from "./AdventureCharacter";
@@ -76,11 +76,16 @@ export function CoinRain({ onDone }: { onDone: () => void }) {
     [coins]
   );
 
+  // onDone lives in a ref so a parent re-render (fresh arrow prop)
+  // doesn't re-run the effect — that replayed the chime and reset the
+  // completion timer on every state change while the rain was falling.
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
   useEffect(() => {
     playWinChime();
-    const t = setTimeout(onDone, totalMs);
+    const t = setTimeout(() => onDoneRef.current(), totalMs);
     return () => clearTimeout(t);
-  }, [onDone, totalMs]);
+  }, [totalMs]);
 
   return (
     <div

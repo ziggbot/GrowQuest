@@ -9,6 +9,7 @@ import { Avatar } from "../design/Avatar";
 import { CHILD_PROFILE_COLS } from "../lib/columns";
 import { BackButton } from "../design/BackButton";
 import { playPop, playReject } from "../design/sounds";
+import { safeImageSrc } from "../lib/image";
 
 interface QueueItem {
   submission: MissionSubmission;
@@ -119,15 +120,15 @@ export function ApprovalQueueScreen() {
               {it.mission.description && (
                 <p style={{ color: C.muted, fontSize: 12, margin: "0 0 10px" }}>{it.mission.description}</p>
               )}
-              {it.submission.photo_data && (
+              {safeImageSrc(it.submission.photo_data) && (
                 <a
-                  href={it.submission.photo_data}
+                  href={safeImageSrc(it.submission.photo_data)!}
                   target="_blank"
                   rel="noreferrer"
                   style={{ display: "block", marginBottom: 10 }}
                 >
                   <img
-                    src={it.submission.photo_data}
+                    src={safeImageSrc(it.submission.photo_data)!}
                     alt={`Bevis från ${it.child.nickname}`}
                     style={{
                       width: "100%",

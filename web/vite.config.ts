@@ -29,14 +29,12 @@ export default defineConfig({
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,ico,woff2}"],
         navigateFallback: "/index.html",
-        importScripts: ["/sw-notification-click.js"],
-        runtimeCaching: [
-          {
-            urlPattern: ({ url }) => url.hostname.endsWith(".supabase.co"),
-            handler: "NetworkFirst",
-            options: { cacheName: "supabase", networkTimeoutSeconds: 5 }
-          }
-        ]
+        importScripts: ["/sw-notification-click.js"]
+        // Deliberately NO runtimeCaching of *.supabase.co: those GET
+        // responses carry family data (balances, emails, photos) and
+        // would persist in Cache Storage after sign-out on a shared
+        // device. Static assets are precached above; API data is
+        // network-only.
       }
     })
   ],
