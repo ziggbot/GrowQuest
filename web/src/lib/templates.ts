@@ -22,13 +22,18 @@ export const AGE_BAND_LABELS: Record<AgeBand, string> = {
   "13+": "13–15 år"
 };
 
+// Hard ceiling for any mission reward — template, custom or workout.
+// Enforced here (estimates), in the create form, and by a DB CHECK.
+export const MAX_MISSION_REWARD = 30;
+
 // 10 templates per age band, balanced across:
 //   🏃 Rörelse / utomhus
 //   🤝 Hjälp till / hemma
 //   🎨 Skapande
 //   🧠 Lärande
 //   🫶 Socialt / självständighet
-// Rewards roughly map to "minutes of activity" since 1 mynt = 1 minute.
+// Rewards roughly map to "minutes of activity" since 1 mynt = 1 minute,
+// but never above MAX_MISSION_REWARD.
 export const MISSION_TEMPLATES: readonly MissionTemplate[] = [
   // ───── 7–9 år ──────────────────────────────────────────────────────
   { id: "y79-1",  ageBand: "7-9", title: "Naturpromenad",        description: "Ut i 20 minuter — räkna 3 saker du ser",       icon: "🌳", baseRewardMynt: 25, recurrence: "daily" },
@@ -43,7 +48,7 @@ export const MISSION_TEMPLATES: readonly MissionTemplate[] = [
   { id: "y79-10", ageBand: "7-9", title: "Vattna blommorna",     description: "Ge alla krukväxter en omgång vatten",          icon: "🌱", baseRewardMynt: 10, recurrence: "weekly"},
 
   // ───── 10–12 år ────────────────────────────────────────────────────
-  { id: "y1012-1",  ageBand: "10-12", title: "Träna 30 minuter",        description: "Spring, cykla, simma eller eget pass",        icon: "🏃", baseRewardMynt: 35, recurrence: "daily" },
+  { id: "y1012-1",  ageBand: "10-12", title: "Träna 30 minuter",        description: "Spring, cykla, simma eller eget pass",        icon: "🏃", baseRewardMynt: 30, recurrence: "daily" },
   { id: "y1012-2",  ageBand: "10-12", title: "Bollsport ute",           description: "Fotboll, basket eller liknande i 30 min",     icon: "⚽", baseRewardMynt: 30, recurrence: "daily" },
   { id: "y1012-3",  ageBand: "10-12", title: "Övar instrument",         description: "20 minuter fokuserad övning",                 icon: "🎸", baseRewardMynt: 25, recurrence: "daily" },
   { id: "y1012-4",  ageBand: "10-12", title: "Skriv en berättelse",     description: "En sida fritt skrivande om vad som helst",    icon: "✍️", baseRewardMynt: 30, recurrence: "once"  },
@@ -55,16 +60,18 @@ export const MISSION_TEMPLATES: readonly MissionTemplate[] = [
   { id: "y1012-10", ageBand: "10-12", title: "Dammsug ditt rum",        description: "Hela golvet — under sängen också",             icon: "🧹", baseRewardMynt: 20, recurrence: "weekly"},
 
   // ───── 13–15 år ────────────────────────────────────────────────────
-  { id: "y13-1",  ageBand: "13+", title: "Träningspass 45 min",     description: "Gym, cykling, simhall eller hård löprunda",    icon: "💪", baseRewardMynt: 45, recurrence: "daily" },
-  { id: "y13-2",  ageBand: "13+", title: "Föreningsträning",        description: "Närvaro på en träning med ditt lag",           icon: "🏆", baseRewardMynt: 60, recurrence: "weekly"},
-  { id: "y13-3",  ageBand: "13+", title: "Hjälp en granne",         description: "Bär kassar, klipp gräs eller lös ett problem", icon: "🫶", baseRewardMynt: 50, recurrence: "once"  },
-  { id: "y13-4",  ageBand: "13+", title: "Laga middag själv",       description: "Planera, handla och tillaga åt familjen",      icon: "👨‍🍳", baseRewardMynt: 60, recurrence: "weekly"},
-  { id: "y13-5",  ageBand: "13+", title: "Övar instrument 30 min",  description: "Fokuserad övning, inte bara spela igenom",     icon: "🎹", baseRewardMynt: 30, recurrence: "daily" },
-  { id: "y13-6",  ageBand: "13+", title: "Läxor 60 minuter",        description: "Djupfokus — telefonen ur sikte",               icon: "📚", baseRewardMynt: 60, recurrence: "daily" },
-  { id: "y13-7",  ageBand: "13+", title: "Läs en bok 45 min",       description: "Ingen lärobok — något du själv valt",          icon: "📖", baseRewardMynt: 30, recurrence: "daily" },
-  { id: "y13-8",  ageBand: "13+", title: "Lär dig något nytt",      description: "Tutorial, kurs eller experiment i 45 min",     icon: "🧠", baseRewardMynt: 45, recurrence: "weekly"},
-  { id: "y13-9",  ageBand: "13+", title: "Bjud middag eller fika",  description: "Förbered och bjud en vän — ingen skärm",       icon: "🍪", baseRewardMynt: 50, recurrence: "weekly"},
-  { id: "y13-10", ageBand: "13+", title: "Passa småsyskon",         description: "60 min — lekar och aktiviteter, ingen skärm",  icon: "👶", baseRewardMynt: 60, recurrence: "once"  }
+  // Bigger efforts sit at the 30-mynt ceiling; lighter ones just below,
+  // so there's still a visible gradient inside the cap.
+  { id: "y13-1",  ageBand: "13+", title: "Träningspass 45 min",     description: "Gym, cykling, simhall eller hård löprunda",    icon: "💪", baseRewardMynt: 30, recurrence: "daily" },
+  { id: "y13-2",  ageBand: "13+", title: "Föreningsträning",        description: "Närvaro på en träning med ditt lag",           icon: "🏆", baseRewardMynt: 30, recurrence: "weekly"},
+  { id: "y13-3",  ageBand: "13+", title: "Hjälp en granne",         description: "Bär kassar, klipp gräs eller lös ett problem", icon: "🫶", baseRewardMynt: 25, recurrence: "once"  },
+  { id: "y13-4",  ageBand: "13+", title: "Laga middag själv",       description: "Planera, handla och tillaga åt familjen",      icon: "👨‍🍳", baseRewardMynt: 30, recurrence: "weekly"},
+  { id: "y13-5",  ageBand: "13+", title: "Övar instrument 30 min",  description: "Fokuserad övning, inte bara spela igenom",     icon: "🎹", baseRewardMynt: 25, recurrence: "daily" },
+  { id: "y13-6",  ageBand: "13+", title: "Läxor 60 minuter",        description: "Djupfokus — telefonen ur sikte",               icon: "📚", baseRewardMynt: 30, recurrence: "daily" },
+  { id: "y13-7",  ageBand: "13+", title: "Läs en bok 45 min",       description: "Ingen lärobok — något du själv valt",          icon: "📖", baseRewardMynt: 25, recurrence: "daily" },
+  { id: "y13-8",  ageBand: "13+", title: "Lär dig något nytt",      description: "Tutorial, kurs eller experiment i 45 min",     icon: "🧠", baseRewardMynt: 25, recurrence: "weekly"},
+  { id: "y13-9",  ageBand: "13+", title: "Bjud middag eller fika",  description: "Förbered och bjud en vän — ingen skärm",       icon: "🍪", baseRewardMynt: 25, recurrence: "weekly"},
+  { id: "y13-10", ageBand: "13+", title: "Passa småsyskon",         description: "60 min — lekar och aktiviteter, ingen skärm",  icon: "👶", baseRewardMynt: 30, recurrence: "once"  }
 ] as const;
 
 export function templatesForAge(band: AgeBand): readonly MissionTemplate[] {
@@ -74,8 +81,11 @@ export function templatesForAge(band: AgeBand): readonly MissionTemplate[] {
 // The epsilon compensates for binary-float products landing a hair
 // below x.5 where the server's numeric math yields exactly x.5 —
 // keeps the client estimate equal to what the server actually charges.
+// Clamped to MAX_MISSION_REWARD so a generous uppdrag_multiplier can't
+// push a suggestion past the ceiling.
 export function estimateMissionReward(base: number, multiplier: number): number {
-  return Math.max(0, Math.round((base * multiplier) / 5 + 1e-9) * 5);
+  const rounded = Math.max(0, Math.round((base * multiplier) / 5 + 1e-9) * 5);
+  return Math.min(MAX_MISSION_REWARD, rounded);
 }
 
 // 1 mynt = 1 minute, scaled by the family's screen_time_multiplier.

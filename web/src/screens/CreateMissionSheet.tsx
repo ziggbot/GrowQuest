@@ -5,9 +5,16 @@ import {
   MISSION_TEMPLATES,
   TEMPLATE_AGE_BANDS,
   AGE_BAND_LABELS,
+  MAX_MISSION_REWARD,
   estimateMissionReward,
   type MissionTemplate as BuiltInTemplate
 } from "../lib/templates";
+import {
+  EXERCISES,
+  workoutDescription,
+  workoutReward,
+  type WorkoutItem
+} from "../lib/exercises";
 import { C } from "../design/tokens";
 import { Kort, Knapp, Pill, Input } from "../design/components";
 import { Avatar } from "../design/Avatar";
@@ -52,8 +59,9 @@ export function CreateMissionSheet({
 }) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [reward, setReward] = useState(60);
+  const [reward, setReward] = useState(20);
   const [recurrence, setRecurrence] = useState<Recurrence>("daily");
+  const [workout, setWorkout] = useState<WorkoutItem[]>([]);
   const [pickedKey, setPickedKey] = useState<string | null>(null);
   const [assignedChildId, setAssignedChildId] = useState<string | null>(null);
   const [personalTemplates, setPersonalTemplates] = useState<DbMissionTemplate[]>([]);
@@ -125,7 +133,38 @@ export function CreateMissionSheet({
     setTitle(t.title);
     setDescription(t.description ?? "");
     setRecurrence(t.recurrence);
-    setReward(t.reward_mynt);
+    // Older personal templates may predate the 30-mynt ceiling.
+    setReward(Math.min(MAX_MISSION_REWARD, t.reward_mynt));
+  }
+
+  function toggleExercise(id: string) {
+    setWorkout((items) => {
+      if (items.some((i) => i.exerciseId === id)) {
+        return items.filter((i) => i.exerciseId !== id);
+      }
+      const ex = EXERCISES.find((e) => e.id === id);
+      return ex ? [...items, { exerciseId: id, amount: ex.defaultAmount }] : items;
+    });
+  }
+
+  function stepExercise(id: string, delta: number) {
+    setWorkout((items) =>
+      items.map((i) => {
+        if (i.exerciseId !== id) return i;
+        const ex = EXERCISES.find((e) => e.id === id);
+        if (!ex) return i;
+        return { ...i, amount: Math.max(ex.step, Math.min(ex.max, i.amount + delta)) };
+      })
+    );
+  }
+
+  function applyWorkout() {
+    if (workout.length === 0) return;
+    setPickedKey("workout");
+    setTitle("Träningspass");
+    setDescription(workoutDescription(workout));
+    setRecurrence("daily");
+    setReward(workoutReward(workout));
   }
 
   async function deleteMission(m: Mission) {
@@ -156,7 +195,7 @@ export function CreateMissionSheet({
     title.trim().length >= 1 &&
     title.trim().length <= 80 &&
     reward >= 0 &&
-    reward <= 10000 &&
+    reward <= MAX_MISSION_REWARD &&
     children.length > 0;
 
   async function save() {
@@ -370,6 +409,103 @@ export function CreateMissionSheet({
           </div>
         </Kort>
 
+        <Kort>
+          <label style={{ color: C.muted, fontSize: 12, fontWeight: 700, display: "block", marginBottom: 2 }}>
+            🏋️ Träningspass
+          </label>
+          <p style={{ color: C.muted, fontSize: 11, margin: "0 0 10px", lineHeight: 1.4 }}>
+            Välj övningar och bygg ihop ett eget pass — det blir uppdragets beskrivning.
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+            {EXERCISES.map((ex) => {
+              const isOn = workout.some((i) => i.exerciseId === ex.id);
+              return (
+                <button
+                  key={ex.id}
+                  onClick={() => toggleExercise(ex.id)}
+                  title={ex.namn}
+                  style={templateCardStyle(isOn)}
+                >
+                  <span style={{ fontSize: 22, lineHeight: 1 }}>{ex.icon}</span>
+                  <span style={templateTitleStyle}>{ex.namn}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {workout.length > 0 && (
+            <div style={{ marginTop: 12, display: "grid", gap: 8 }}>
+              {workout.map((item) => {
+                const ex = EXERCISES.find((e) => e.id === item.exerciseId);
+                if (!ex) return null;
+                return (
+                  <div
+                    key={item.exerciseId}
+                    style={{ display: "flex", alignItems: "center", gap: 8 }}
+                  >
+                    <span style={{ fontSize: 18, width: 24, textAlign: "center" }}>{ex.icon}</span>
+                    <span style={{ flex: 1, color: C.text, fontSize: 13, fontWeight: 600 }}>
+                      {ex.namn}
+                    </span>
+                    <button
+                      onClick={() => stepExercise(item.exerciseId, -ex.step)}
+                      style={{ ...stepBtn, minWidth: 40, padding: "6px 8px" }}
+                    >
+                      −{ex.step}
+                    </button>
+                    <span
+                      style={{
+                        minWidth: 62,
+                        textAlign: "center",
+                        color: C.gold,
+                        fontWeight: 700,
+                        fontSize: 14
+                      }}
+                    >
+                      {item.amount} {ex.unit === "seconds" ? "sek" : "st"}
+                    </span>
+                    <button
+                      onClick={() => stepExercise(item.exerciseId, ex.step)}
+                      style={{ ...stepBtn, minWidth: 40, padding: "6px 8px" }}
+                    >
+                      +{ex.step}
+                    </button>
+                  </div>
+                );
+              })}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  borderTop: `1px solid ${C.border}`,
+                  paddingTop: 8
+                }}
+              >
+                <span style={{ flex: 1, color: C.muted, fontSize: 12 }}>
+                  {workout.length} övning{workout.length > 1 ? "ar" : ""} · förslag{" "}
+                  <strong style={{ color: C.gold }}>{workoutReward(workout)} 🪙</strong>
+                </span>
+                <button
+                  onClick={applyWorkout}
+                  style={{
+                    background: C.gold,
+                    border: "none",
+                    borderRadius: 10,
+                    padding: "8px 14px",
+                    color: "#fff",
+                    cursor: "pointer",
+                    fontSize: 13,
+                    fontWeight: 700
+                  }}
+                >
+                  Använd passet
+                </button>
+              </div>
+            </div>
+          )}
+        </Kort>
+
         {personalForAge.length > 0 && (
           <Kort>
             <label style={{ color: C.muted, fontSize: 12, display: "block", marginBottom: 8 }}>
@@ -442,7 +578,15 @@ export function CreateMissionSheet({
                 <div style={{ flex: 1, textAlign: "center", color: C.gold, fontWeight: 700, fontSize: 18 }}>
                   {reward} 🪙
                 </div>
-                <button onClick={() => setReward((r) => Math.min(10000, r + 5))} style={stepBtn}>+5</button>
+                <button
+                  onClick={() => setReward((r) => Math.min(MAX_MISSION_REWARD, r + 5))}
+                  style={stepBtn}
+                >
+                  +5
+                </button>
+              </div>
+              <div style={{ color: C.muted, fontSize: 11, marginTop: 4, textAlign: "center" }}>
+                Max {MAX_MISSION_REWARD} 🪙 per uppdrag
               </div>
             </div>
             <div>
