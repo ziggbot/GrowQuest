@@ -1,0 +1,37 @@
+# Render blueprint for the Rise web PWA.
+#
+# Render → New → Blueprint → connect this repo. Render reads this file,
+# creates the static site, and asks for the two env vars below on the
+# first deploy. Every push to the deployed branch redeploys automatically.
+#
+# The app lives in web/ (this is a monorepo with ios/ and supabase/ too),
+# so rootDir points there and the published output is web/dist.
+
+services:
+  - type: web
+    name: rise-web
+    runtime: static
+    rootDir: web
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    # Pin Node so Vite 5 (needs 18+) builds the same way locally and here.
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: VITE_SUPABASE_URL
+        sync: false          # set in the Render dashboard (your project URL)
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false          # set in the dashboard (sb_publishable_… key)
+    # SPA fallback: every unmatched path serves index.html so React Router
+    # handles /join, /legal/*, /wallet/* etc. Real files (assets, sw.js,
+    # manifest) are served directly and take precedence over this rule.
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    # Never let the browser hold a stale service worker — vite-plugin-pwa
+    # uses autoUpdate, but a cached sw.js can delay the update by a visit.
+    headers:
+      - path: /sw.js
+        name: Cache-Control
+        value: "no-cache"
