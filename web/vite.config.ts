@@ -10,7 +10,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icon.svg", "favicon.svg"],
+      includeAssets: ["icon.svg", "favicon.svg", "apple-touch-icon.png"],
       manifest: {
         name: "Rise",
         short_name: "Rise",
@@ -23,7 +23,11 @@ export default defineConfig({
         start_url: "/",
         lang: "sv",
         icons: [
-          { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any maskable" }
+          // PNGs are what Android/Chrome install prompts actually use;
+          // full-bleed so the platform's maskable crop looks right.
+          { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+          { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+          { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }
         ]
       },
       workbox: {
